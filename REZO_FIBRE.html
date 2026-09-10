@@ -115,6 +115,21 @@ textarea{resize:vertical;min-height:60px}
 .item .m{font-weight:700;color:var(--bleu);white-space:nowrap}
 .recherche{margin-bottom:11px}
 
+/* ---------- onglets de rubrique ---------- */
+.ongl{display:flex;gap:7px;margin-bottom:11px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.ongl button{flex:1 1 auto;white-space:nowrap;background:#fff;border:1px solid var(--trait);color:var(--gris);
+  border-radius:20px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;line-height:1.2}
+.ongl button.on{background:var(--bleu);border-color:var(--bleu);color:#fff}
+.ongl button .cpt{opacity:.75;font-weight:600}
+.rubBtn{display:flex;gap:8px}
+.rubBtn button{flex:1;background:#fff;border:1.5px solid var(--trait);color:#334;border-radius:9px;
+  padding:10px 8px;font-size:13px;font-weight:700;cursor:pointer}
+.rubBtn button.on{border-color:var(--bleu);background:var(--cyan-p);color:var(--bleu)}
+.vign .rub{position:absolute;top:7px;left:7px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;
+  background:rgba(255,255,255,.94);border:1px solid var(--trait);color:#334}
+.vign .rub.adm{background:var(--attente-f);border-color:var(--attente-f);color:var(--attente)}
+.vign .rub.enc{background:#eef1f6;border-color:#eef1f6;color:#556}
+
 /* ---------- navigation ---------- */
 nav{
   position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--trait);
@@ -392,8 +407,8 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 <!-- ==================== ACHATS ==================== -->
 <section id="scr-ach" class="screen">
   <div class="carte">
-    <h2>Factures d'achat</h2>
-    <p class="lead">Photographiez ou déposez vos factures fournisseurs, puis transmettez-les au suivi comptable — <b>contact@rezofibre.fr</b>. Elles restent enregistrées sur cet appareil jusqu'à ce que vous les supprimiez.</p>
+    <h2>Factures d'achat et documents</h2>
+    <p class="lead">Photographiez ou déposez vos factures fournisseurs et vos courriers administratifs. Chaque document est <b>lu puis classé automatiquement</b> dans la rubrique la mieux adaptée — Facture ou Administration — et se retrouve dans l'archive. Transmission au suivi comptable : <b>contact@rezofibre.fr</b>.</p>
     <div class="btn-row">
       <button class="btn btn-p" onclick="App.capturer(true)">📷 Prendre une photo</button>
       <button class="btn btn-s" onclick="App.capturer(false)">📎 Choisir un fichier</button>
@@ -401,12 +416,14 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
     <input type="file" id="fAchatPhoto" accept="image/*" capture="environment" multiple style="display:none" onchange="App.ajouterAchats(event)">
     <input type="file" id="fAchatFichier" accept="image/*,application/pdf" multiple style="display:none" onchange="App.ajouterAchats(event)">
   </div>
+  <div class="ongl" id="onglAch"></div>
   <div id="barreAchats"></div>
   <div id="listeAchats"></div>
 </section>
 
 <!-- ==================== ARCHIVE ==================== -->
 <section id="scr-arc" class="screen">
+  <div class="ongl" id="onglArc"></div>
   <div class="recherche"><input id="rechArc" placeholder="🔍 Numéro, client, montant…" oninput="App.listeArchive()"></div>
   <div id="resumeArc"></div>
   <div id="listeArchive"></div>
@@ -477,7 +494,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 <nav>
   <button class="on" data-tab="acc" onclick="App.aller('acc')"><span class="i">🏠</span><span class="l">Accueil</span></button>
   <button data-tab="new" onclick="App.aller('new')"><span class="i">🧾</span><span class="l">Facture</span></button>
-  <button data-tab="ach" onclick="App.aller('ach')"><span class="i">📷</span><span class="l">Achats</span></button>
+  <button data-tab="ach" onclick="App.aller('ach')"><span class="i">📷</span><span class="l">Photo</span></button>
   <button data-tab="avo" onclick="App.aller('avo')"><span class="i">↩️</span><span class="l">Avoir</span></button>
   <button data-tab="bcm" onclick="App.aller('bcm')"><span class="i">📋</span><span class="l">Commande</span></button>
   <button data-tab="cli" onclick="App.aller('cli')"><span class="i">👥</span><span class="l">Clients</span></button>
@@ -493,7 +510,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 (function(){
 
 const CLE="rezofibreFacturation_v1";
-const VERSION="1.1";
+const VERSION="1.2";
 
 /* Destinataire du suivi comptable : adresse de transmission figee.
    Elle ne se modifie pas depuis l'application : tout ce qui est transmis part la, et nulle part ailleurs. */
@@ -549,13 +566,14 @@ const AIDE=[
   p:["Le <b>devis</b> se remplit comme une facture, avec une durée de validité et un cadre « Bon pour accord » à signer.",
      "Une fois accepté, le bouton <b>Transformer en facture</b> reprend tout : client, lignes, montants.",
      "Le <b>bon de commande</b> fonctionne dans les deux sens : commande passée à un fournisseur, ou commande reçue d'un client."]},
- {i:"📷",t:"Vos factures d'achat",
-  p:["Onglet <b>Achats</b>, puis <b>Prendre une photo</b> : l'appareil photo s'ouvre directement.",
-     "Renseignez le fournisseur, la date et le montant si vous les avez — rien n'est obligatoire.",
-     "Appuyez sur <b>Transmettre</b> : sur téléphone, les photos partent réellement en pièces jointes, à l'adresse de suivi comptable de la société."],
-  n:"L'adresse de destination est inscrite dans l'application et ne se modifie pas. Les photos restent sur votre appareil tant que vous ne les supprimez pas : ne les effacez qu'une fois transmises."},
+ {i:"📷",t:"Photographier un document",
+  p:["Onglet <b>Photo</b>, puis <b>Prendre une photo</b> : l'appareil photo s'ouvre directement.",
+     "L'application <b>lit le document</b> et le range seule dans la rubrique la mieux adaptée : <b>Facture</b> pour une facture fournisseur, <b>Administration</b> pour un courrier URSSAF, impôts, greffe, assurance…",
+     "Elle reprend aussi la <b>date</b> et le <b>montant TTC</b> quand ils sont lisibles. Vérifiez, corrigez si besoin : la rubrique se change d'un geste dans la fiche.",
+     "Appuyez sur <b>Transmettre</b> : sur téléphone, les documents partent réellement en pièces jointes, à l'adresse de suivi comptable de la société."],
+  n:"La lecture automatique se télécharge au premier usage : prévoyez une connexion la première fois. Ensuite elle fonctionne hors ligne. Une rubrique corrigée à la main est mémorisée : le même émetteur sera bien classé la fois suivante."},
  {i:"📁",t:"Suivre les encaissements",
-  p:["L'<b>Archive</b> réunit tous vos documents validés.",
+  p:["L'<b>Archive</b> se lit en trois rubriques : <b>Émis</b> (vos factures validées), <b>Factures</b> (les factures d'achat photographiées) et <b>Administration</b> (vos courriers officiels photographiés).",
      "Ouvrez une facture réglée et indiquez la <b>date d'encaissement</b>, ou marquez-la simplement comme réglée.",
      "Le total facturé, l'encaissé et le reste dû se mettent à jour, et les factures en retard apparaissent en rouge."]},
  {i:"📲",t:"Installer sur le téléphone",
@@ -1100,9 +1118,60 @@ function listeClients(){
   }).join("");
 }
 
-/* =============== archive =============== */
+/* =============== archive =============== =
+   Trois rubriques : les documents emis par la societe (factures, avoirs, devis valides),
+   les factures d'achat photographiees, et les documents administratifs photographies. */
+const ARC_RUBS=[
+  ["emis",         "📄 Émis",           "🔍 Numéro, client, montant…"],
+  ["facture",      "🧾 Factures",       "🔍 Fournisseur, montant, note…"],
+  ["administration","🗂️ Administration","🔍 Organisme, montant, note…"]
+];
+function onglArchive(nb){
+  const r=App._arcRub||"emis";
+  document.getElementById("onglArc").innerHTML=ARC_RUBS.map(o=>
+    '<button class="'+(r===o[0]?"on":"")+'" onclick="App.arcRub(\''+o[0]+'\')">'+o[1]+
+    (nb&&nb[o[0]]!==undefined?' <span class="cpt">'+nb[o[0]]+'</span>':'')+'</button>').join("");
+  const inp=document.getElementById("rechArc");
+  const def=(ARC_RUBS.filter(o=>o[0]===r)[0]||ARC_RUBS[0])[2];
+  if(inp) inp.placeholder=def;
+}
+
 function listeArchive(){
+  const rub=App._arcRub||"emis";
   const q=(document.getElementById("rechArc").value||"").toLowerCase();
+  const nbEmis=Object.values(D.factures).filter(f=>f.statut==="validee").length;
+  achatTous().then(t=>{
+    onglArchive({emis:nbEmis,
+      facture:t.filter(p=>rubDe(p)==="facture").length,
+      administration:t.filter(p=>rubDe(p)==="administration").length});
+  }).catch(()=>onglArchive({emis:nbEmis}));
+  if(rub!=="emis"){ listeArchivePieces(rub,q); return; }
+  archiveEmis(q);
+}
+
+/* Rubriques photographiees : memes vignettes que l'ecran Photo. */
+function listeArchivePieces(rub,q){
+  const rz=document.getElementById("resumeArc"), z=document.getElementById("listeArchive");
+  achatTous().then(tous=>{
+    let l=tous.filter(p=>rubDe(p)===rub);
+    l.sort((a,b)=>(b.date||"")<(a.date||"")?-1:((b.date||"")>(a.date||"")?1:(b.cree||0)-(a.cree||0)));
+    const tot=l.reduce((s,p)=>s+(parseFloat(String(p.montant).replace(",","."))||0),0);
+    const aTr=l.filter(p=>!p.transmisLe).length;
+    rz.innerHTML=l.length?'<div class="tot">'+
+      '<div class="l"><span>Documents classés</span><b>'+l.length+'</b></div>'+
+      (tot>0?'<div class="l"><span>Total des montants saisis</span><b>'+eur(r2(tot))+'</b></div>':'')+
+      '<div class="l"><span>À transmettre</span><b style="color:'+(aTr?"var(--attente)":"var(--ok)")+'">'+aTr+'</b></div>'+
+      '</div>'+(aTr?'<div class="btn-row" style="margin-bottom:12px">'+
+        '<button class="btn btn-p" onclick="App.transmettreAchats(\''+rub+'\')">📤 Transmettre '+(aTr>1?"les "+aTr+" pièces":"la pièce")+'</button></div>':''):"";
+    if(q) l=l.filter(p=>((p.fournisseur||"")+" "+(p.nom||"")+" "+(p.note||"")+" "+
+      (p.montant||"")+" "+frDate(p.date)).toLowerCase().includes(q));
+    if(!l.length){ z.innerHTML='<div class="vide">'+(q?"Aucun document pour cette recherche."
+      :"Aucun document dans cette rubrique. Photographiez-en un depuis l'onglet Photo.")+'</div>'; return; }
+    z.innerHTML='<div class="grilleAch">'+l.map(p=>vignettePiece(p)).join("")+'</div>';
+  });
+}
+
+function archiveEmis(q){
   let arr=Object.values(D.factures).filter(f=>f.statut==="validee");
   arr.sort((a,b)=>(b.numeroSeq||0)-(a.numeroSeq||0));
   const tous=arr.slice();
@@ -1375,6 +1444,196 @@ function poids(n){
   if(n<1024) return n+" o";
   if(n<1048576) return (n/1024).toFixed(0)+" Ko";
   return (n/1048576).toFixed(1)+" Mo";
+}
+
+/* =============== rubriques et classement automatique =================
+   Chaque piece photographiee est rangee dans une rubrique.
+   L'application lit le document (OCR) et choisit seule la rubrique la mieux adaptee.
+   Le classement reste modifiable a la main : la correction est memorisee. */
+const RUBRIQUES={
+  facture:        {nom:"Facture",        court:"Facture", ic:"🧾", cls:""},
+  administration: {nom:"Administration", court:"Admin",   ic:"🗂️", cls:"adm"}
+};
+const RUB_DEF="facture";
+function rubDe(p){ const r=p&&p.rubrique; return RUBRIQUES[r]?r:RUB_DEF; }
+function rubNom(r){ return (RUBRIQUES[r]||RUBRIQUES[RUB_DEF]).nom; }
+
+/* Normalisation : minuscules, sans accent, ponctuation reduite a l'espace.
+   "Avis d'imposition" et "AVIS D IMPOSITION" deviennent la meme chaine. */
+function norml(t){
+  let s=String(t||"").toLowerCase();
+  try{ s=s.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }catch(e){}
+  return s.replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();
+}
+
+/* Mots-cles et poids. Un document administratif cite souvent un montant :
+   les emetteurs publics et les formules de courrier pesent donc plus lourd
+   que les mots comptables generiques. */
+const MOTS_ADM=[
+ ["urssaf",7],["dgfip",7],["direction generale des finances publiques",7],["tresor public",6],
+ ["service des impots",7],["impots gouv",6],["impots",4],["msa",4],["mutualite sociale agricole",7],
+ ["cpam",5],["assurance maladie",5],["caf",3],["france travail",6],["pole emploi",6],
+ ["greffe",6],["tribunal de commerce",6],["tribunal",5],["kbis",7],["k bis",7],["inpi",6],
+ ["prefecture",6],["sous prefecture",6],["mairie",4],["ministere",5],["republique francaise",5],
+ ["mise en demeure",7],["contrainte",4],["huissier",6],["commissaire de justice",6],
+ ["cotisation",5],["cotisations",5],["appel de cotisation",7],["attestation",5],["attestation de vigilance",7],
+ ["avis d imposition",7],["avis d echeance",5],["taxe fonciere",7],["taxe d habitation",7],
+ ["cotisation fonciere des entreprises",7],["cvae",5],["liasse fiscale",5],
+ ["declaration",3],["convocation",5],["amende",6],["contravention",6],["avis de contravention",7],
+ ["bail",5],["contrat",3],["avenant",4],["assurance",4],["mutuelle",5],["prevoyance",5],
+ ["securite sociale",6],["retraite",5],["statuts",5],["proces verbal",5],["assemblee generale",5],
+ ["recommande avec accuse de reception",6],["notification",4],["mise a jour de votre situation",5],
+ ["numero de dossier",3],["reference dossier",3],["vous informe",2],["veuillez agreer",2],
+ ["madame monsieur",2],["objet",1]
+];
+const MOTS_FAC=[
+ ["facture n",8],["facture no",8],["numero de facture",8],["facture",6],["invoice",6],
+ ["total ttc",7],["montant ttc",6],["net a payer",7],["total ht",6],["total h t",6],
+ ["prix unitaire",6],["p u ht",5],["quantite",4],["designation",4],["qte",4],
+ ["bon de livraison",5],["bon de commande",4],["devis",4],["ticket",3],["ticket de caisse",5],
+ ["taux tva",4],["tva 20",4],["tva 10",4],["tva 5 5",4],["montant tva",4],
+ ["reglement a reception",5],["conditions de reglement",4],["escompte",3],["remise",3],
+ ["date de facture",6],["mode de reglement",4],["franco de port",3],["frais de port",3]
+];
+
+/* Correspondances apprises : un fournisseur classe une fois l'est ensuite tout seul. */
+function apprises(){ D.reglages.rubApprises=D.reglages.rubApprises||{}; return D.reglages.rubApprises; }
+function apprendre(nom,rub){
+  const k=norml(nom);
+  if(k.length<3||!RUBRIQUES[rub]) return;
+  apprises()[k]=rub; sauver();
+}
+
+function classer(txt){
+  const t=" "+norml(txt)+" ";
+  if(t.length<6) return {rub:RUB_DEF, sur:0, adm:0, fac:0};
+  let adm=0, fac=0;
+  MOTS_ADM.forEach(m=>{ if(t.indexOf(" "+norml(m[0]))>=0) adm+=m[1]; });
+  MOTS_FAC.forEach(m=>{ if(t.indexOf(" "+norml(m[0]))>=0) fac+=m[1]; });
+  const ap=apprises();
+  Object.keys(ap).forEach(k=>{ if(k&&t.indexOf(" "+k)>=0){ if(ap[k]==="administration") adm+=9; else fac+=9; } });
+  const rub=(adm>fac)?"administration":RUB_DEF;
+  return {rub:rub, sur:Math.max(adm,fac), adm:adm, fac:fac};
+}
+
+/* Lecture de la piece : montant TTC et date, quand ils sont clairement ecrits. */
+function nombreFr(s){
+  let v=String(s||"").replace(/\s/g,"");
+  const pt=v.lastIndexOf("."), vg=v.lastIndexOf(",");
+  const dec=Math.max(pt,vg);
+  if(dec>=0 && v.length-dec<=3){ v=v.slice(0,dec).replace(/[.,]/g,"")+","+v.slice(dec+1); }
+  else v=v.replace(/[.,]/g,"");
+  const n=parseFloat(v.replace(",","."));
+  return isFinite(n)&&n>0?v:"";
+}
+function extraireMontant(txt){
+  const t=String(txt||"").replace(/[\u00a0\u202f]/g," ");
+  const re=/(total\s*t\.?\s*t\.?\s*c\.?|net\s*[aà]\s*payer|montant\s*t\.?\s*t\.?\s*c\.?|total\s*[aà]\s*payer|total\s*du)[^0-9\n]{0,24}([0-9][0-9 .,]{0,13}[0-9])/i;
+  const m=t.match(re);
+  return m?nombreFr(m[2]):"";
+}
+function extraireDate(txt){
+  const re=/([0-3]?[0-9])[\/.\- ]([0-1]?[0-9])[\/.\- ](20[0-9]{2})/;
+  const m=String(txt||"").match(re);
+  if(!m) return "";
+  const j=parseInt(m[1],10), mo=parseInt(m[2],10), an=parseInt(m[3],10);
+  const cet=new Date().getFullYear();
+  if(j<1||j>31||mo<1||mo>12||an<cet-8||an>cet+1) return "";
+  return an+"-"+String(mo).padStart(2,"0")+"-"+String(j).padStart(2,"0");
+}
+
+/* ---- OCR embarque (Tesseract.js) ----
+   Charge a la demande depuis le CDN, puis conserve en cache par le navigateur.
+   Indisponible ou hors ligne au premier usage : on retombe sur le nom du fichier. */
+const OCR={
+  src:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",
+  _script:null, _worker:null, actif:true,
+  charger(){
+    if(typeof window.Tesseract!=="undefined") return Promise.resolve(true);
+    if(OCR._script) return OCR._script;
+    OCR._script=new Promise(ok=>{
+      let fini=false;
+      const fin=v=>{ if(!fini){ fini=true; ok(v); } };
+      try{
+        const s=document.createElement("script");
+        s.src=OCR.src; s.async=true;
+        s.onload=()=>fin(typeof window.Tesseract!=="undefined");
+        s.onerror=()=>fin(false);
+        document.head.appendChild(s);
+      }catch(e){ fin(false); }
+      setTimeout(()=>fin(typeof window.Tesseract!=="undefined"),25000);
+    });
+    return OCR._script;
+  },
+  worker(){
+    if(OCR._worker) return OCR._worker;
+    OCR._worker=OCR.charger().then(ok=>{
+      if(!ok||typeof window.Tesseract==="undefined") return null;
+      try{ return window.Tesseract.createWorker("fra",1).catch(()=>null); }
+      catch(e){ return null; }
+    }).catch(()=>null);
+    return OCR._worker;
+  },
+  /* Une photo de telephone est trop grande pour l'OCR : 1200 px suffisent et vont 3 a 5 fois plus vite. */
+  preparer(blob){
+    return new Promise(ok=>{
+      if(typeof createImageBitmap!=="function"){ ok(blob); return; }
+      createImageBitmap(blob).then(b=>{
+        const MAX=1200, e=Math.min(1,MAX/Math.max(b.width,b.height));
+        if(e>=1){ ok(blob); return; }
+        const c=document.createElement("canvas");
+        c.width=Math.round(b.width*e); c.height=Math.round(b.height*e);
+        c.getContext("2d").drawImage(b,0,0,c.width,c.height);
+        c.toBlob(x=>ok(x||blob),"image/jpeg",0.9);
+      }).catch(()=>ok(blob));
+    });
+  },
+  lire(blob){
+    if(!OCR.actif||!blob||!/^image\//.test(blob.type||"")) return Promise.resolve("");
+    return OCR.preparer(blob).then(b=>OCR.worker().then(w=>{
+      if(!w){ OCR.actif=false; return ""; }
+      return Promise.race([
+        w.recognize(b).then(r=>(r&&r.data&&r.data.text)||""),
+        new Promise(ok=>setTimeout(()=>ok(""),60000))
+      ]).catch(()=>"");
+    })).catch(()=>"");
+  }
+};
+
+/* Analyse d'une piece deja enregistree, en tache de fond. */
+function analyserPiece(id){
+  return achatLire(id).then(p=>{
+    if(!p) return null;
+    return OCR.lire(p.blob).then(txt=>{
+      const source=txt&&txt.trim().length>25 ? "ocr" : "nom";
+      const base=source==="ocr" ? txt : (p.nom||"");
+      const c=classer(base);
+      p.rubrique=c.sur>=5?c.rub:RUB_DEF;
+      p.auto=source;
+      p.confiance=c.sur;
+      if(source==="ocr"){
+        if(!p.montant){ const m=extraireMontant(txt); if(m) p.montant=m; }
+        const d=extraireDate(txt); if(d) p.date=d;
+      }
+      return achatMettre(p).then(()=>p);
+    });
+  }).catch(()=>null);
+}
+
+/* Vignette d'une piece — meme rendu dans l'ecran Photo et dans l'archive. */
+function vignettePiece(p){
+  const u=URL.createObjectURL(p.blob);
+  const img=/^image\//.test(p.type)?'<img class="img" src="'+u+'" alt="">':'<div class="pdf">📄</div>';
+  const enc=p.auto==="encours";
+  const r=rubDe(p), cfg=RUBRIQUES[r];
+  const et=enc?'<div class="rub enc">⏳ lecture…</div>'
+              :'<div class="rub '+cfg.cls+'">'+cfg.ic+' '+esc(cfg.court)+'</div>';
+  return '<div class="vign'+(App._achatsSel[p.id]?" sel":"")+'" onclick="App.ouvrirAchat(\''+p.id+'\')">'+
+    img+et+'<div class="coche" onclick="event.stopPropagation();App.selAchat(\''+p.id+'\')">✓</div>'+
+    '<div class="bas"><div class="n">'+esc(p.fournisseur||p.nom)+'</div>'+
+    '<div class="d">'+frDate(p.date)+(p.montant?" · "+esc(p.montant)+" €":"")+'</div>'+
+    '<div class="d">'+(p.transmisLe?'<span style="color:var(--ok)">✓ transmise</span>':'<span style="color:var(--attente)">à transmettre</span>')+'</div>'+
+    '</div></div>';
 }
 
 /* =============== overlay =============== */
@@ -1670,8 +1929,8 @@ TUILES:[
   ["bcm","📋","Bon de commande","Commander à un fournisseur ou enregistrer la commande d'un client"],
   ["cli","👥","Clients","Créer et retrouver vos clients et fournisseurs"],
   ["ban","🏦","Banque","Vos comptes et vos IBAN"],
-  ["ach","📷","Achats","Photographier vos factures fournisseurs"],
-  ["arc","📁","Archive","Tous vos documents validés et leurs règlements"],
+  ["ach","📷","Photo","Photographier vos factures et vos courriers administratifs"],
+  ["arc","📁","Archive","Documents émis, factures d'achat et administration"],
   ["aid","❓","Guide","Comment utiliser l'application, pas à pas"]
 ],
 TUILE_ADMIN:["adm","⚙️","Admin","Société, numérotation, autorisations"],
@@ -1841,38 +2100,76 @@ ajouterAchats(ev){
   ev.target.value="";
   if(!fichiers.length) return;
   toast(fichiers.length>1?"Enregistrement de "+fichiers.length+" pièces…":"Enregistrement…");
-  Promise.all(fichiers.map(f=>reduireImage(f).then(b=>achatMettre({
-      id:uid(), nom:f.name||"Photo", fournisseur:"", date:auj(), montant:"", note:"",
-      type:b.type||f.type||"image/jpeg", taille:b.size, blob:b, cree:now(), transmisLe:""
-    }))))
-    .then(()=>{ App.listeAchats(); toast(fichiers.length>1?fichiers.length+" pièces enregistrées":"Pièce enregistrée"); })
+  const ids=[];
+  Promise.all(fichiers.map(f=>reduireImage(f).then(b=>{
+      const id=uid(); ids.push(id);
+      /* Classement provisoire d'apres le nom du fichier : l'OCR affinera juste apres. */
+      const pre=classer(f.name||"");
+      return achatMettre({
+        id:id, nom:f.name||"Photo", fournisseur:"", date:auj(), montant:"", note:"",
+        rubrique:(pre.sur>=5?pre.rub:RUB_DEF), auto:"encours", confiance:0,
+        type:b.type||f.type||"image/jpeg", taille:b.size, blob:b, cree:now(), transmisLe:""
+      });
+    })))
+    .then(()=>{
+      App.listeAchats();
+      toast(fichiers.length>1?fichiers.length+" pièces enregistrées — lecture en cours…":"Pièce enregistrée — lecture en cours…");
+      App.analyserSuite(ids);
+    })
     .catch(()=>toast("Enregistrement impossible sur cet appareil"));
 },
+/* Analyse en file d'attente : une piece a la fois, pour ne pas figer le telephone. */
+analyserSuite(ids){
+  const reste=ids.slice();
+  const suivant=()=>{
+    if(!reste.length){
+      if(ecran==="ach") App.listeAchats();
+      if(ecran==="arc") App.listeArchive();
+      return;
+    }
+    const id=reste.shift();
+    analyserPiece(id).then(p=>{
+      if(ecran==="ach") App.listeAchats();
+      if(ecran==="arc") App.listeArchive();
+      if(p && ids.length===1){
+        toast(p.auto==="ocr"
+          ? "Document lu — classé en « "+rubNom(rubDe(p))+" »"
+          : "Classé en « "+rubNom(rubDe(p))+" » (lecture indisponible)");
+      }
+      setTimeout(suivant,60);
+    }).catch(()=>setTimeout(suivant,60));
+  };
+  setTimeout(suivant,200);
+},
 _achatsSel:{},
+_achRub:"tout",
+achRub(r){ App._achRub=r; App.listeAchats(); },
 listeAchats(){
   const z=document.getElementById("listeAchats"), bz=document.getElementById("barreAchats");
-  achatTous().then(l=>{
-    l.sort((a,b)=>(b.cree||0)-(a.cree||0));
-    App._achats=l;
+  const oz=document.getElementById("onglAch");
+  achatTous().then(tous=>{
+    tous.sort((a,b)=>(b.cree||0)-(a.cree||0));
+    const nF=tous.filter(p=>rubDe(p)==="facture").length;
+    const nA=tous.filter(p=>rubDe(p)==="administration").length;
+    const r=App._achRub||"tout";
+    oz.innerHTML=tous.length?
+      [["tout","Tout",tous.length],["facture","🧾 Factures",nF],["administration","🗂️ Administration",nA]]
+      .map(o=>'<button class="'+(r===o[0]?"on":"")+'" onclick="App.achRub(\''+o[0]+'\')">'+o[1]+
+              ' <span class="cpt">'+o[2]+'</span></button>').join(""):"";
+    const l=(r==="tout")?tous:tous.filter(p=>rubDe(p)===r);
+    App._achats=tous;
     const aTr=l.filter(p=>!p.transmisLe).length;
     const sel=Object.keys(App._achatsSel).filter(k=>App._achatsSel[k]).length;
-    bz.innerHTML=l.length?'<div class="tot"><div class="l"><span>Pièces enregistrées</span><b>'+l.length+'</b></div>'+
+    bz.innerHTML=l.length?'<div class="tot"><div class="l"><span>Pièces '+(r==="tout"?"enregistrées":"dans « "+rubNom(r)+" »")+'</span><b>'+l.length+'</b></div>'+
       '<div class="l"><span>À transmettre</span><b style="color:'+(aTr?"var(--attente)":"var(--ok)")+'">'+aTr+'</b></div></div>'+
       (aTr?'<div class="btn-row" style="margin-bottom:12px">'+
-        '<button class="btn btn-p" onclick="App.transmettreAchats(null)">📤 Transmettre les '+aTr+' pièces</button>'+
+        '<button class="btn btn-p" onclick="App.transmettreAchats(\''+r+'\')">📤 Transmettre '+(aTr>1?"les "+aTr+" pièces":"la pièce")+'</button>'+
         (sel?'<button class="btn btn-s" onclick="App.transmettreAchats(true)">Transmettre la sélection ('+sel+')</button>':'')+
        '</div>':''):"";
-    if(!l.length){ z.innerHTML='<div class="vide">Aucune pièce enregistrée. Utilisez l\'appareil photo ou déposez un fichier.</div>'; return; }
-    z.innerHTML='<div class="grilleAch">'+l.map(p=>{
-      const u=URL.createObjectURL(p.blob);
-      const img=/^image\//.test(p.type)?'<img class="img" src="'+u+'" alt="">':'<div class="pdf">📄</div>';
-      return '<div class="vign'+(App._achatsSel[p.id]?" sel":"")+'" onclick="App.ouvrirAchat(\''+p.id+'\')">'+
-        img+'<div class="coche" onclick="event.stopPropagation();App.selAchat(\''+p.id+'\')">✓</div>'+
-        '<div class="bas"><div class="n">'+esc(p.fournisseur||p.nom)+'</div>'+
-        '<div class="d">'+frDate(p.date)+(p.montant?" · "+esc(p.montant)+" €":"")+'</div>'+
-        '<div class="d">'+(p.transmisLe?'<span style="color:var(--ok)">✓ transmise</span>':'<span style="color:var(--attente)">à transmettre</span>')+'</div>'+
-        '</div></div>';
-    }).join("")+'</div>';
+    if(!l.length){ z.innerHTML='<div class="vide">'+(tous.length
+        ? 'Aucune pièce dans cette rubrique.'
+        : 'Aucune pièce enregistrée. Utilisez l\'appareil photo ou déposez un fichier.')+'</div>'; return; }
+    z.innerHTML='<div class="grilleAch">'+l.map(p=>vignettePiece(p)).join("")+'</div>';
   });
 },
 selAchat(id){ App._achatsSel[id]=!App._achatsSel[id]; App.listeAchats(); },
@@ -1880,12 +2177,25 @@ ouvrirAchat(id){
   achatLire(id).then(p=>{
     if(!p) return;
     const u=URL.createObjectURL(p.blob);
+    const r=rubDe(p);
+    App._rubEnCours=r;
+    const note=p.auto==="encours"
+      ? '<div class="note">⏳ Lecture du document en cours — la rubrique sera ajustée automatiquement.</div>'
+      : (p.auto==="ocr"
+          ? '<div class="note">Document lu automatiquement'+(p.confiance>=5?' et classé en <b>'+esc(rubNom(r))+'</b>':' — classement peu sûr, vérifiez la rubrique')+'.</div>'
+          : '<div class="note warn">Lecture automatique indisponible (document non image ou hors ligne au premier usage). Vérifiez la rubrique.</div>');
     ouvrir('<h3>'+esc(p.fournisseur||p.nom)+'</h3>'+
       '<p class="lead">'+poids(p.taille||0)+' · enregistrée le '+frDate(new Date(p.cree).toISOString().slice(0,10))+
       (p.transmisLe?' · <span style="color:var(--ok)">transmise le '+frDate(p.transmisLe)+'</span>':'')+'</p>'+
       (/^image\//.test(p.type)?'<img class="apercu" src="'+u+'">':'<div class="note">Document PDF — <a href="'+u+'" target="_blank">ouvrir</a></div>')+
-      '<div class="champ" style="margin-top:12px"><label>Fournisseur</label><input id="aFou" value="'+esc(p.fournisseur)+'" placeholder="Nom du fournisseur"></div>'+
-      '<div class="duo"><div class="champ"><label>Date de la facture</label><input type="date" id="aDate" value="'+esc(p.date)+'"></div>'+
+      note+
+      '<div class="champ" style="margin-top:12px"><label>Rubrique</label>'+
+        '<div class="rubBtn" id="aRub">'+
+          Object.keys(RUBRIQUES).map(k=>'<button type="button" data-r="'+k+'" class="'+(k===r?"on":"")+
+            '" onclick="App.choisirRubrique(\''+k+'\')">'+RUBRIQUES[k].ic+' '+esc(RUBRIQUES[k].nom)+'</button>').join("")+
+        '</div></div>'+
+      '<div class="champ"><label>Fournisseur ou émetteur</label><input id="aFou" value="'+esc(p.fournisseur)+'" placeholder="Nom du fournisseur ou de l\'organisme"></div>'+
+      '<div class="duo"><div class="champ"><label>Date du document</label><input type="date" id="aDate" value="'+esc(p.date)+'"></div>'+
       '<div class="champ"><label>Montant TTC</label><input id="aMt" inputmode="decimal" value="'+esc(p.montant)+'" placeholder="0,00"></div></div>'+
       '<div class="champ"><label>Note</label><input id="aNote" value="'+esc(p.note)+'" placeholder="facultatif"></div>'+
       '<div class="btn-row"><button class="btn btn-p" onclick="App.enregistrerAchat(\''+id+'\')">Enregistrer</button>'+
@@ -1894,13 +2204,25 @@ ouvrirAchat(id){
       '<button class="btn btn-f" onclick="App.fermer()">Fermer</button></div>');
   });
 },
+choisirRubrique(r){
+  if(!RUBRIQUES[r]) return;
+  App._rubEnCours=r;
+  const z=document.getElementById("aRub");
+  if(z) Array.prototype.forEach.call(z.children,b=>b.classList.toggle("on",b.dataset.r===r));
+},
 enregistrerAchat(id){
   achatLire(id).then(p=>{
     if(!p) return;
     const v=k=>{ const e=document.getElementById(k); return e?e.value.trim():""; };
+    const avant=rubDe(p);
     p.fournisseur=v("aFou"); p.date=v("aDate")||p.date; p.montant=v("aMt"); p.note=v("aNote");
+    const r=App._rubEnCours||avant;
+    if(r!==avant) p.auto="manuel";
+    p.rubrique=r;
+    /* L'emetteur corrigé à la main sert de règle pour les prochains documents. */
+    if(p.fournisseur) apprendre(p.fournisseur,r);
     return achatMettre(p);
-  }).then(()=>{ fermer(); App.listeAchats(); toast("Pièce enregistrée"); });
+  }).then(()=>{ fermer(); if(ecran==="arc") App.listeArchive(); else App.listeAchats(); toast("Pièce enregistrée"); });
 },
 supprimerAchat(id){
   ouvrir('<h3>Supprimer cette pièce ?</h3>'+
@@ -1909,32 +2231,48 @@ supprimerAchat(id){
     '<button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
 },
 confirmerSupAchat(id){
-  achatEffacer(id).then(()=>{ delete App._achatsSel[id]; fermer(); App.listeAchats(); toast("Pièce supprimée"); });
+  achatEffacer(id).then(()=>{ delete App._achatsSel[id]; fermer();
+    if(ecran==="arc") App.listeArchive(); else App.listeAchats(); toast("Pièce supprimée"); });
 },
 recapAchats(l){
   const tot=l.reduce((s,p)=>s+(parseFloat(String(p.montant).replace(",","."))||0),0);
-  return "Factures d'achat — "+D.societe.nom+"\n"+
-    l.length+" pièce"+(l.length>1?"s":"")+"\n\n"+
-    l.map(p=>"• "+(p.fournisseur||p.nom)+" — "+frDate(p.date)+(p.montant?" — "+p.montant+" €":"")+(p.note?" ("+p.note+")":"")).join("\n")+
-    (tot>0?"\n\nTotal indiqué : "+eur(tot):"")+"\n\n"+D.societe.nom;
+  const par=r=>l.filter(p=>rubDe(p)===r);
+  const bloc=r=>{ const x=par(r); return x.length
+    ? "\n"+RUBRIQUES[r].nom.toUpperCase()+" ("+x.length+")\n"+
+      x.map(p=>"• "+(p.fournisseur||p.nom)+" — "+frDate(p.date)+(p.montant?" — "+p.montant+" €":"")+(p.note?" ("+p.note+")":"")).join("\n")+"\n"
+    : ""; };
+  return "Pièces transmises — "+D.societe.nom+"\n"+
+    l.length+" document"+(l.length>1?"s":"")+"\n"+
+    bloc("facture")+bloc("administration")+
+    (tot>0?"\nTotal indiqué : "+eur(tot):"")+"\n\n"+D.societe.nom;
+},
+sujetAchats(l){
+  const nA=l.filter(p=>rubDe(p)==="administration").length, nF=l.length-nA;
+  const q=nA&&nF ? "Factures d'achat et documents administratifs"
+        : (nA ? "Documents administratifs" : "Factures d'achat");
+  return q+" — "+D.societe.nom;
 },
 transmettreAchats(quoi){
   if(!suiviPret()){ toast("Coordonnées de suivi non renseignées (espace Admin)"); return; }
-  let ids=null;
+  let ids=null, rub=null;
   if(Array.isArray(quoi)) ids=quoi;
   else if(quoi===true) ids=Object.keys(App._achatsSel).filter(k=>App._achatsSel[k]);
-  Promise.resolve(App._achats||[]).then(tous=>{
+  else if(typeof quoi==="string"&&RUBRIQUES[quoi]) rub=quoi;
+  achatTous().then(tous=>{
     let l=ids?tous.filter(p=>ids.indexOf(p.id)>=0):tous.filter(p=>!p.transmisLe);
+    if(rub) l=l.filter(p=>rubDe(p)===rub);
     if(!l.length){ toast("Aucune pièce à transmettre"); return; }
     const txt=App.recapAchats(l);
-    const fichiers=l.map(p=>new File([p.blob],(p.fournisseur||p.nom||"facture").replace(/[\\/:*?"<>|]/g,"")+
+    const suj=App.sujetAchats(l);
+    const fichiers=l.map(p=>new File([p.blob],(rubDe(p)==="administration"?"ADM-":"")+
+      (p.fournisseur||p.nom||"document").replace(/[\\/:*?"<>|]/g,"")+
       "-"+p.date+(/pdf/.test(p.type)?".pdf":".jpg"),{type:p.type}));
     const marquer=()=>{ const d=auj();
       return Promise.all(l.map(p=>{ p.transmisLe=d; return achatMettre(p); }))
-        .then(()=>{ App._achatsSel={}; fermer(); App.listeAchats(); }); };
+        .then(()=>{ App._achatsSel={}; fermer(); if(ecran==="arc") App.listeArchive(); else App.listeAchats(); }); };
 
     if(navigator.share&&navigator.canShare&&navigator.canShare({files:fichiers})){
-      navigator.share({files:fichiers,title:"Factures d'achat "+D.societe.nom,text:txt})
+      navigator.share({files:fichiers,title:suj,text:txt})
         .then(()=>{ marquer(); toast("Pièces transmises"); })
         .catch(()=>{});
       return;
@@ -1946,7 +2284,7 @@ transmettreAchats(quoi){
       'Sur téléphone, l\'envoi direct fonctionne sans cette manipulation.</div>'+
       '<div class="btn-row"><button class="btn btn-p" onclick="App.replisAchats(\'mail\')">✉️ Ouvrir le mail pour '+esc(suivi().mail)+'</button></div>'+
       '<div class="btn-row" style="margin-top:8px"><button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
-    App._repli={l:l,txt:txt,marquer:marquer};
+    App._repli={l:l,txt:txt,suj:suj,marquer:marquer};
   });
 },
 replisAchats(mode){
@@ -1958,7 +2296,7 @@ replisAchats(mode){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   },i*350));
-  const suj="Factures d'achat — "+D.societe.nom;
+  const suj=r.suj||("Factures d'achat — "+D.societe.nom);
   setTimeout(()=>{
     window.location.href="mailto:"+encodeURIComponent(suivi().mail)+"?subject="+encodeURIComponent(suj)+"&body="+encodeURIComponent(r.txt);
   },r.l.length*350+250);
@@ -2058,6 +2396,13 @@ enregistrerReouverture(){
 
 /* ---------- archive ---------- */
 listeArchive,
+_arcRub:"emis",
+arcRub(r){
+  App._arcRub=r;
+  const inp=document.getElementById("rechArc"); if(inp) inp.value="";
+  listeArchive();
+  window.scrollTo(0,0);
+},
 ouvrirArchive(id){
   const f=D.factures[id]; if(!f) return;
   const t=totaux(f), reg=f.paiement&&f.paiement.regle;
