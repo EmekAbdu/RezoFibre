@@ -2,7 +2,7 @@
    HTML : network-first (version fraiche en ligne, cache en secours hors ligne)
    Statique : cache-first
    Cross-origin : jamais intercepte */
-const CACHE = 'rezofibre-fact-v1';
+const CACHE = 'rezofibre-fact-v2';
 const ASSETS = ['./', 'REZO_FIBRE.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', (e) => {
