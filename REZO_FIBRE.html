@@ -185,9 +185,9 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 .vign .n{font-weight:700;font-size:13px;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .vign .d{font-size:11px;color:var(--gris);margin-top:2px}
-.vign .coche{position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;
-  background:rgba(255,255,255,.92);border:1.5px solid var(--trait);display:flex;align-items:center;
-  justify-content:center;font-size:12px;color:transparent}
+.vign .coche{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.94);border:1.5px solid var(--gris-c);display:flex;align-items:center;
+  justify-content:center;font-size:13px;color:var(--gris-c);box-shadow:0 1px 3px rgba(15,25,45,.18)}
 .vign.sel .coche{background:var(--bleu);border-color:var(--bleu);color:#fff}
 .vign.sel{outline:2px solid var(--bleu)}
 .apercu{width:100%;max-height:62vh;object-fit:contain;border-radius:9px;background:#eef1f6;display:block}
@@ -304,6 +304,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
     <p class="slogan" id="sloganAcc"></p>
     <p class="dateJour" id="dateAcc"></p>
   </div>
+  <div id="zoneInstall"></div>
   <div id="resumeAcc"></div>
   <div class="tuiles" id="tuilesAcc"></div>
 </section>
@@ -483,6 +484,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
       </div>
       <input type="file" id="fImport" accept="application/json,.json" style="display:none" onchange="App.importer(event)">
       <div style="margin-top:10px"><button class="btn btn-s" onclick="App.changerCode()">Changer le code admin</button></div>
+      <div style="margin-top:8px"><button class="btn btn-f" onclick="App.diagnostic()">🔎 Diagnostic d'installation</button></div>
       <div style="margin-top:8px"><button class="btn btn-f" onclick="App.verrouillerAdmin()">🔒 Verrouiller et masquer l'espace admin</button></div>
       <p class="lead" style="margin:14px 0 0;text-align:center" id="admVersion"></p>
     </div>
@@ -510,7 +512,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 (function(){
 
 const CLE="rezofibreFacturation_v1";
-const VERSION="1.2";
+const VERSION="1.4";
 
 /* Destinataire du suivi comptable : adresse de transmission figee.
    Elle ne se modifie pas depuis l'application : tout ce qui est transmis part la, et nulle part ailleurs. */
@@ -570,16 +572,19 @@ const AIDE=[
   p:["Onglet <b>Photo</b>, puis <b>Prendre une photo</b> : l'appareil photo s'ouvre directement.",
      "L'application <b>lit le document</b> et le range seule dans la rubrique la mieux adaptée : <b>Facture</b> pour une facture fournisseur, <b>Administration</b> pour un courrier URSSAF, impôts, greffe, assurance…",
      "Elle reprend aussi la <b>date</b> et le <b>montant TTC</b> quand ils sont lisibles. Vérifiez, corrigez si besoin : la rubrique se change d'un geste dans la fiche.",
-     "Appuyez sur <b>Transmettre</b> : sur téléphone, les documents partent réellement en pièces jointes, à l'adresse de suivi comptable de la société."],
+     "Appuyez sur <b>Transmettre</b> : sur téléphone, les documents partent réellement en pièces jointes, à l'adresse de suivi comptable de la société.",
+     "Pour <b>supprimer</b> : touchez le rond en haut à droite des photos concernées, puis <b>Supprimer</b> — vous pouvez en effacer plusieurs d'un coup. <b>Tout sélectionner</b> vide la rubrique affichée."],
   n:"La lecture automatique se télécharge au premier usage : prévoyez une connexion la première fois. Ensuite elle fonctionne hors ligne. Une rubrique corrigée à la main est mémorisée : le même émetteur sera bien classé la fois suivante."},
  {i:"📁",t:"Suivre les encaissements",
   p:["L'<b>Archive</b> se lit en trois rubriques : <b>Émis</b> (vos factures validées), <b>Factures</b> (les factures d'achat photographiées) et <b>Administration</b> (vos courriers officiels photographiés).",
      "Ouvrez une facture réglée et indiquez la <b>date d'encaissement</b>, ou marquez-la simplement comme réglée.",
      "Le total facturé, l'encaissé et le reste dû se mettent à jour, et les factures en retard apparaissent en rouge."]},
  {i:"📲",t:"Installer sur le téléphone",
-  p:["<b>Android</b> — ouvrez le lien dans Chrome, puis « Installer l'application » dans le menu.",
-     "<b>iPhone</b> — ouvrez le lien dans Safari, bouton Partager, puis « Sur l'écran d'accueil ».",
-     "L'icône REZO FIBRE apparaît et l'application s'ouvre ensuite sans barre de navigateur, même sans connexion."]}
+  p:["Le plus simple : sur la <b>page d'accueil</b> de l'application, le bouton <b>« Installer maintenant »</b> fait tout.",
+     "<b>Android</b> — sinon, bouton ⋮ dans Chrome, puis « Installer l'application ».",
+     "<b>iPhone</b> — ouvrez le lien dans <b>Safari</b> (Chrome ne sait pas le faire sur iPhone), bouton Partager, puis « Sur l'écran d'accueil ».",
+     "L'icône REZO FIBRE apparaît et l'application s'ouvre ensuite sans barre de navigateur, même sans connexion."],
+  n:"Rien ne se propose ? Le bouton <b>Comment faire</b> de la page d'accueil lance un <b>diagnostic</b> qui indique le fichier manquant sur l'hébergement. L'installation exige une adresse en https:// et les sept fichiers dans le même dossier."}
 ];
 
 let SLOGAN="";
@@ -1155,14 +1160,7 @@ function listeArchivePieces(rub,q){
   achatTous().then(tous=>{
     let l=tous.filter(p=>rubDe(p)===rub);
     l.sort((a,b)=>(b.date||"")<(a.date||"")?-1:((b.date||"")>(a.date||"")?1:(b.cree||0)-(a.cree||0)));
-    const tot=l.reduce((s,p)=>s+(parseFloat(String(p.montant).replace(",","."))||0),0);
-    const aTr=l.filter(p=>!p.transmisLe).length;
-    rz.innerHTML=l.length?'<div class="tot">'+
-      '<div class="l"><span>Documents classés</span><b>'+l.length+'</b></div>'+
-      (tot>0?'<div class="l"><span>Total des montants saisis</span><b>'+eur(r2(tot))+'</b></div>':'')+
-      '<div class="l"><span>À transmettre</span><b style="color:'+(aTr?"var(--attente)":"var(--ok)")+'">'+aTr+'</b></div>'+
-      '</div>'+(aTr?'<div class="btn-row" style="margin-bottom:12px">'+
-        '<button class="btn btn-p" onclick="App.transmettreAchats(\''+rub+'\')">📤 Transmettre '+(aTr>1?"les "+aTr+" pièces":"la pièce")+'</button></div>':''):"";
+    rz.innerHTML=barrePieces(l,{rub:rub,titre:"Documents classés"});
     if(q) l=l.filter(p=>((p.fournisseur||"")+" "+(p.nom||"")+" "+(p.note||"")+" "+
       (p.montant||"")+" "+frDate(p.date)).toLowerCase().includes(q));
     if(!l.length){ z.innerHTML='<div class="vide">'+(q?"Aucun document pour cette recherche."
@@ -1446,6 +1444,27 @@ function poids(n){
   return (n/1048576).toFixed(1)+" Mo";
 }
 
+/* =============== installation sur l'ecran d'accueil =================
+   Chrome (Android) previent quand l'application remplit les criteres d'installation :
+   on retient l'evenement pour proposer un vrai bouton, au lieu de laisser l'utilisateur
+   chercher dans le menu du navigateur. */
+let INSTALL_EVT=null, INSTALLEE=false;
+function estInstallee(){
+  try{
+    if(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) return true;
+    if(window.matchMedia&&window.matchMedia("(display-mode: minimal-ui)").matches) return true;
+  }catch(e){}
+  return !!window.navigator.standalone;
+}
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault(); INSTALL_EVT=e;
+  if(typeof App!=="undefined"&&ecran==="acc") App.rendreInstall();
+});
+window.addEventListener("appinstalled",()=>{
+  INSTALL_EVT=null; INSTALLEE=true;
+  if(typeof App!=="undefined"){ App.rendreInstall(); toast("Application installée"); }
+});
+
 /* =============== rubriques et classement automatique =================
    Chaque piece photographiee est rangee dans une rubrique.
    L'application lit le document (OCR) et choisit seule la rubrique la mieux adaptee.
@@ -1634,6 +1653,42 @@ function vignettePiece(p){
     '<div class="d">'+frDate(p.date)+(p.montant?" · "+esc(p.montant)+" €":"")+'</div>'+
     '<div class="d">'+(p.transmisLe?'<span style="color:var(--ok)">✓ transmise</span>':'<span style="color:var(--attente)">à transmettre</span>')+'</div>'+
     '</div></div>';
+}
+
+/* Bandeau commun aux pieces : compteurs, selection, transmission, suppression.
+   Sert a l'ecran Photo comme aux rubriques photographiees de l'archive. */
+function barrePieces(l,opts){
+  opts=opts||{};
+  if(!l.length){ App._vue=[]; return ""; }
+  App._vue=l.map(p=>p.id);
+  const sel=App._vue.filter(id=>App._achatsSel[id]);
+  const aTr=l.filter(p=>!p.transmisLe).length;
+  const tot=l.reduce((s,p)=>s+(parseFloat(String(p.montant).replace(",","."))||0),0);
+  let h='<div class="tot">'+
+    '<div class="l"><span>'+esc(opts.titre||"Pièces enregistrées")+'</span><b>'+l.length+'</b></div>'+
+    (tot>0?'<div class="l"><span>Total des montants saisis</span><b>'+eur(r2(tot))+'</b></div>':'')+
+    '<div class="l"><span>À transmettre</span><b style="color:'+(aTr?"var(--attente)":"var(--ok)")+'">'+aTr+'</b></div>'+
+    (sel.length?'<div class="l"><span>Sélectionnées</span><b style="color:var(--bleu)">'+sel.length+'</b></div>':'')+
+    '</div>';
+  if(sel.length){
+    h+='<div class="btn-row" style="margin-bottom:8px">'+
+        '<button class="btn btn-p" onclick="App.transmettreAchats(true)">📤 Transmettre ('+sel.length+')</button>'+
+        '<button class="btn btn-d" onclick="App.supprimerSelection()">🗑️ Supprimer ('+sel.length+')</button>'+
+       '</div>'+
+       '<div class="btn-row" style="margin-bottom:12px">'+
+        '<button class="btn btn-f mini" onclick="App.toutSel(false)">Tout désélectionner</button>'+
+        (sel.length<l.length?'<button class="btn btn-f mini" onclick="App.toutSel(true)">Tout sélectionner</button>':'')+
+       '</div>';
+  } else {
+    h+=(aTr?'<div class="btn-row" style="margin-bottom:8px">'+
+        '<button class="btn btn-p" onclick="App.transmettreAchats(\''+(opts.rub||"tout")+'\')">📤 Transmettre '+
+          (aTr>1?"les "+aTr+" pièces":"la pièce")+'</button></div>':'')+
+       '<div class="btn-row" style="margin-bottom:6px">'+
+        '<button class="btn btn-f mini" onclick="App.toutSel(true)">☑️ Tout sélectionner</button></div>'+
+       '<p class="lead" style="margin:0 0 12px">Touchez le <b>rond en haut à droite</b> d\'une photo pour la sélectionner, '+
+       'puis transmettez ou supprimez le lot.</p>';
+  }
+  return h;
 }
 
 /* =============== overlay =============== */
@@ -1982,6 +2037,8 @@ rendreAccueil(){
       '<div class="ss">'+t[3]+'</div></div></div>').join("");
   App.brancherLogo();
 
+  App.rendreInstall();
+
   const val=Object.values(D.factures).filter(f=>f.statut==="validee"&&!f.essai);
   const du=val.filter(f=>f.type!=="avoir"&&!f.annuleePar&&!(f.paiement&&f.paiement.regle))
               .reduce((a,f)=>a+totaux(f).ttc,0);
@@ -2005,6 +2062,125 @@ rendreAccueil(){
       n+' facture'+(n>1?"s":"")+' d\'achat à transmettre. '+
       '<button class="btn btn-f mini" style="margin-top:6px" onclick="App.aller(\'ach\')">Voir les achats</button></div>';
   }).catch(()=>{});
+},
+
+/* ---------- installation ---------- */
+rendreInstall(){
+  const z=document.getElementById("zoneInstall");
+  if(!z) return;
+  if(INSTALLEE||estInstallee()){ z.innerHTML=""; return; }
+  if(INSTALL_EVT){
+    z.innerHTML='<div class="carte" style="border-color:var(--bleu)">'+
+      '<h2>📲 Installer sur l\'écran d\'accueil</h2>'+
+      '<p class="lead">L\'application s\'ouvrira comme une vraie application, en plein écran et même sans connexion.</p>'+
+      '<button class="btn btn-p" onclick="App.installer()">Installer maintenant</button></div>';
+  } else {
+    z.innerHTML='<div class="carte">'+
+      '<h2>📲 Installer sur l\'écran d\'accueil</h2>'+
+      '<p class="lead">Ajoutez l\'icône REZO FIBRE à votre téléphone.</p>'+
+      '<div class="btn-row"><button class="btn btn-s" onclick="App.aideInstall()">Comment faire</button></div></div>';
+  }
+},
+installer(){
+  if(!INSTALL_EVT){ App.aideInstall(); return; }
+  const e=INSTALL_EVT; INSTALL_EVT=null;
+  try{
+    e.prompt();
+    Promise.resolve(e.userChoice).then(r=>{
+      if(r&&r.outcome==="accepted"){ INSTALLEE=true; toast("Installation lancée"); }
+      else { INSTALL_EVT=e; toast("Installation annulée"); }
+      App.rendreInstall();
+    }).catch(()=>{ App.rendreInstall(); });
+  }catch(x){ INSTALL_EVT=e; App.aideInstall(); }
+},
+aideInstall(){
+  const ua=navigator.userAgent||"";
+  const ios=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  const chromeIOS=ios&&/CriOS|FxiOS|EdgiOS/.test(ua);
+  const android=/Android/.test(ua);
+  const httpsOk=location.protocol==="https:"||location.hostname==="localhost";
+  let corps;
+  if(chromeIOS){
+    corps='<div class="note warn">Sur iPhone, seul <b>Safari</b> peut ajouter une application à l\'écran d\'accueil. '+
+      'Copiez l\'adresse de cette page, ouvrez-la dans Safari, puis recommencez.</div>';
+  } else if(ios){
+    corps='<div class="note"><b>Safari</b> — appuyez sur le bouton <b>Partager</b> (le carré avec la flèche, en bas), '+
+      'faites défiler, puis <b>« Sur l\'écran d\'accueil »</b> et <b>Ajouter</b>.</div>';
+  } else if(android){
+    corps='<div class="note"><b>Chrome</b> — bouton <b>⋮</b> en haut à droite, puis '+
+      '<b>« Installer l\'application »</b> (ou <b>« Ajouter à l\'écran d\'accueil »</b>).</div>'+
+      '<div class="note warn">Si cette ligne n\'apparaît pas, c\'est qu\'un fichier manque sur l\'hébergement — '+
+      'le plus souvent les icônes ou <b>manifest.json</b>. Le diagnostic ci-dessous le dit en une phrase.</div>';
+  } else {
+    corps='<div class="note">Sur ordinateur, une icône <b>d\'installation</b> apparaît à droite de la barre d\'adresse '+
+      'lorsque tous les fichiers sont en place.</div>';
+  }
+  if(!httpsOk) corps+='<div class="note stop">Cette page n\'est pas servie en <b>https://</b> — '+
+    'aucun navigateur n\'autorise l\'installation dans ce cas.</div>';
+  ouvrir('<h3>Ajouter à l\'écran d\'accueil</h3>'+corps+
+    '<div class="btn-row"><button class="btn btn-s" onclick="App.fermer();App.diagnostic()">🔎 Lancer le diagnostic</button>'+
+    '<button class="btn btn-f" onclick="App.fermer()">Fermer</button></div>');
+},
+/* Verifie un par un ce que le navigateur exige pour proposer l'installation. */
+diagnostic(){
+  ouvrir('<h3>Diagnostic d\'installation</h3><div id="diagZ"><p class="lead">Vérifications en cours…</p></div>'+
+    '<div class="btn-row" style="margin-top:8px"><button class="btn btn-f" onclick="App.fermer()">Fermer</button></div>');
+  const li=[];
+  const ligne=(ok,t,d)=>'<div class="l"><span>'+(ok===null?"⏳":(ok?"✅":"❌"))+' '+t+'</span><b style="font-size:12px;font-weight:600;color:'+
+    (ok===null?"var(--gris)":(ok?"var(--ok)":"var(--alerte)"))+'">'+d+'</b></div>';
+  const peindre=()=>{ const z=document.getElementById("diagZ"); if(z) z.innerHTML='<div class="tot">'+li.join("")+'</div>'; };
+
+  const httpsOk=location.protocol==="https:"||location.hostname==="localhost";
+  li.push(ligne(httpsOk,"Adresse sécurisée",location.protocol.replace(":","")));
+  li.push(ligne(!!("serviceWorker" in navigator),"Service worker géré",("serviceWorker" in navigator)?"oui":"non"));
+  peindre();
+
+  const base=location.href.replace(/[^/]*$/,"");
+  const test=(url)=>fetch(url,{cache:"no-store"}).then(r=>({ok:r.ok,st:r.status,r:r})).catch(()=>({ok:false,st:0}));
+
+  test(base+"manifest.json").then(m=>{
+    li.push(ligne(m.ok,"manifest.json",m.ok?"trouvé":"introuvable ("+(m.st||"réseau")+")"));
+    peindre();
+    if(!m.ok) return null;
+    return m.r.json().catch(()=>null);
+  }).then(man=>{
+    if(!man){ if(li.length>3) peindre(); return null; }
+    const ic=(man.icons||[]);
+    li.push(ligne(!!man.start_url,"start_url",man.start_url||"absent"));
+    li.push(ligne(ic.length>0,"Icônes déclarées",ic.length+""));
+    peindre();
+    return Promise.all(ic.map(i=>test(base+String(i.src).replace(/^\.?\//,"")).then(r=>{
+      li.push(ligne(r.ok,String(i.src),r.ok?(i.sizes||"ok"):"introuvable ("+(r.st||"réseau")+")"));
+      peindre();
+      return r.ok;
+    })));
+  }).then(()=>test(base+"sw.js")).then(s=>{
+    li.push(ligne(s.ok,"sw.js",s.ok?"trouvé":"introuvable ("+(s.st||"réseau")+")"));
+    peindre();
+    if("serviceWorker" in navigator) return navigator.serviceWorker.getRegistrations().catch(()=>[]);
+    return [];
+  }).then(regs=>{
+    li.push(ligne(regs&&regs.length>0,"Service worker actif",(regs&&regs.length?"oui":"pas encore — rouvrez la page une fois")));
+    li.push(ligne(INSTALL_EVT?true:(estInstallee()?true:null),"Installation proposée",
+      INSTALL_EVT?"prête":(estInstallee()?"déjà installée":"pas encore")));
+    peindre();
+    const z=document.getElementById("diagZ");
+    if(!z) return;
+    const manque=li.filter(x=>x.indexOf("❌")>=0).length;
+    z.innerHTML+= manque
+      ? '<div class="note stop">'+manque+' élément'+(manque>1?"s":"")+' manquant'+(manque>1?"s":"")+' sur l\'hébergement. '+
+        'Déposez <b>tous</b> les fichiers dans le même dossier : REZO_FIBRE.html, index.html, manifest.json, sw.js, '+
+        'icon-192.png, icon-512.png, icon-maskable-512.png — en respectant les majuscules et minuscules.</div>'
+      : (INSTALL_EVT
+        ? '<div class="note" style="border-left-color:var(--ok);background:var(--ok-f)">Tout est en place.'+
+          '<div style="margin-top:8px"><button class="btn btn-p mini" onclick="App.fermer();App.installer()">Installer maintenant</button></div></div>'
+        : '<div class="note warn">Tous les fichiers répondent. Si le menu ne propose toujours rien : fermez complètement '+
+          'Chrome, rouvrez la page, attendez quelques secondes — le navigateur a besoin d\'une visite complète '+
+          'avant de proposer l\'installation.</div>');
+  }).catch(()=>{
+    const z=document.getElementById("diagZ");
+    if(z) z.innerHTML='<div class="note stop">Diagnostic interrompu — vérifiez la connexion.</div>';
+  });
 },
 
 /* ---------- mode decouverte ----------
@@ -2158,21 +2334,52 @@ listeAchats(){
               ' <span class="cpt">'+o[2]+'</span></button>').join(""):"";
     const l=(r==="tout")?tous:tous.filter(p=>rubDe(p)===r);
     App._achats=tous;
-    const aTr=l.filter(p=>!p.transmisLe).length;
-    const sel=Object.keys(App._achatsSel).filter(k=>App._achatsSel[k]).length;
-    bz.innerHTML=l.length?'<div class="tot"><div class="l"><span>Pièces '+(r==="tout"?"enregistrées":"dans « "+rubNom(r)+" »")+'</span><b>'+l.length+'</b></div>'+
-      '<div class="l"><span>À transmettre</span><b style="color:'+(aTr?"var(--attente)":"var(--ok)")+'">'+aTr+'</b></div></div>'+
-      (aTr?'<div class="btn-row" style="margin-bottom:12px">'+
-        '<button class="btn btn-p" onclick="App.transmettreAchats(\''+r+'\')">📤 Transmettre '+(aTr>1?"les "+aTr+" pièces":"la pièce")+'</button>'+
-        (sel?'<button class="btn btn-s" onclick="App.transmettreAchats(true)">Transmettre la sélection ('+sel+')</button>':'')+
-       '</div>':''):"";
+    bz.innerHTML=barrePieces(l,{rub:r,
+      titre:(r==="tout"?"Pièces enregistrées":"Pièces dans « "+rubNom(r)+" »")});
     if(!l.length){ z.innerHTML='<div class="vide">'+(tous.length
         ? 'Aucune pièce dans cette rubrique.'
         : 'Aucune pièce enregistrée. Utilisez l\'appareil photo ou déposez un fichier.')+'</div>'; return; }
     z.innerHTML='<div class="grilleAch">'+l.map(p=>vignettePiece(p)).join("")+'</div>';
   });
 },
-selAchat(id){ App._achatsSel[id]=!App._achatsSel[id]; App.listeAchats(); },
+selAchat(id){
+  App._achatsSel[id]=!App._achatsSel[id];
+  if(ecran==="arc") App.listeArchive(); else App.listeAchats();
+},
+/* Coche ou decoche d'un coup toutes les pieces affichees dans la vue en cours. */
+toutSel(v){
+  (App._vue||[]).forEach(id=>{ if(v) App._achatsSel[id]=true; else delete App._achatsSel[id]; });
+  if(ecran==="arc") App.listeArchive(); else App.listeAchats();
+},
+supprimerSelection(){
+  const ids=Object.keys(App._achatsSel).filter(k=>App._achatsSel[k]);
+  if(!ids.length){ toast("Aucune pièce sélectionnée"); return; }
+  achatTous().then(t=>{
+    const l=t.filter(p=>ids.indexOf(p.id)>=0);
+    if(!l.length){ toast("Aucune pièce sélectionnée"); return; }
+    const n=l.length, nt=l.filter(p=>!p.transmisLe).length;
+    ouvrir('<h3>Supprimer '+n+' pièce'+(n>1?"s":"")+' ?</h3>'+
+      '<div class="note warn">'+(n>1?'Ces photos seront définitivement effacées':'Cette photo sera définitivement effacée')+
+      ' de cet appareil.'+
+      (nt?' <b>'+(nt>1?nt+" n'ont":"1 n'a")+' pas encore été transmise'+(nt>1?"s":"")+'</b> au suivi comptable.':'')+
+      '</div>'+
+      '<div class="tot">'+l.slice(0,8).map(p=>'<div class="l"><span>'+esc(p.fournisseur||p.nom)+'</span>'+
+        '<b style="font-weight:600;font-size:12px;color:var(--gris)">'+esc(rubNom(rubDe(p)))+'</b></div>').join("")+
+        (n>8?'<div class="l"><span>… et '+(n-8)+' autre'+(n-8>1?"s":"")+'</span><b></b></div>':'')+'</div>'+
+      '<div class="btn-row"><button class="btn btn-d" onclick="App.confirmerSupSelection()">Supprimer définitivement</button>'+
+      '<button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
+  });
+},
+confirmerSupSelection(){
+  const ids=Object.keys(App._achatsSel).filter(k=>App._achatsSel[k]);
+  if(!ids.length){ fermer(); return; }
+  Promise.all(ids.map(id=>achatEffacer(id))).then(()=>{
+    ids.forEach(id=>{ delete App._achatsSel[id]; });
+    fermer();
+    if(ecran==="arc") App.listeArchive(); else App.listeAchats();
+    toast(ids.length>1?ids.length+" pièces supprimées":"Pièce supprimée");
+  }).catch(()=>toast("Suppression impossible sur cet appareil"));
+},
 ouvrirAchat(id){
   achatLire(id).then(p=>{
     if(!p) return;
