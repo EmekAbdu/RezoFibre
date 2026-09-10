@@ -393,7 +393,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 <section id="scr-ach" class="screen">
   <div class="carte">
     <h2>Factures d'achat</h2>
-    <p class="lead">Photographiez ou déposez vos factures fournisseurs, puis transmettez-les au suivi comptable. Elles restent enregistrées sur cet appareil jusqu'à ce que vous les supprimiez.</p>
+    <p class="lead">Photographiez ou déposez vos factures fournisseurs, puis transmettez-les au suivi comptable — <b>contact@rezofibre.fr</b>. Elles restent enregistrées sur cet appareil jusqu'à ce que vous les supprimiez.</p>
     <div class="btn-row">
       <button class="btn btn-p" onclick="App.capturer(true)">📷 Prendre une photo</button>
       <button class="btn btn-s" onclick="App.capturer(false)">📎 Choisir un fichier</button>
@@ -437,9 +437,10 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 
     <div class="carte">
       <h2>Suivi comptable</h2>
-      <p class="lead">Destinataire des factures validées et des factures d'achat transmises. Ces coordonnées ne figurent pas dans le code de l'application.</p>
-      <div class="champ"><label>Adresse e-mail</label><input id="sSuiviMail" type="email" placeholder="ex. compta@exemple.fr" oninput="App.majSociete()"></div>
-      <div class="champ"><label>Numéro WhatsApp (indicatif compris)</label><input id="sSuiviWa" placeholder="ex. +33 6 00 00 00 00" oninput="App.majSociete()"></div>
+      <p class="lead">Destinataire des factures validées et des factures d'achat transmises.</p>
+      <div class="champ"><label>Adresse de transmission</label>
+        <input id="sSuiviMail" type="email" readonly disabled style="background:#eef1f5;color:#3d4a5c"></div>
+      <div class="note">Cette adresse est <b>figée dans l'application</b> : elle ne peut être ni modifiée ni remplacée depuis l'appareil. Tout ce qui est transmis part à cette adresse, et nulle part ailleurs.</div>
     </div>
 
     <div class="carte">
@@ -492,15 +493,13 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 (function(){
 
 const CLE="rezofibreFacturation_v1";
-const VERSION="1.0";
+const VERSION="1.1";
 
-/* Destinataire du suivi comptable : saisi par l'administrateur, jamais ecrit dans le code —
-   le fichier est destine a un depot public. */
-function suivi(){
-  return { mail:(D&&D.reglages&&D.reglages.suiviMail)||"",
-           wa:String((D&&D.reglages&&D.reglages.suiviWa)||"").replace(/[^0-9]/g,"") };
-}
-function suiviPret(){ const s=suivi(); return !!(s.mail||s.wa); }
+/* Destinataire du suivi comptable : adresse de transmission figee.
+   Elle ne se modifie pas depuis l'application : tout ce qui est transmis part la, et nulle part ailleurs. */
+const SUIVI_MAIL="contact@rezofibre.fr";
+function suivi(){ return { mail:SUIVI_MAIL, wa:"" }; }
+function suiviPret(){ return !!SUIVI_MAIL; }
 
 
 /* ================= GUIDE D'UTILISATION ================= */
@@ -553,8 +552,8 @@ const AIDE=[
  {i:"📷",t:"Vos factures d'achat",
   p:["Onglet <b>Achats</b>, puis <b>Prendre une photo</b> : l'appareil photo s'ouvre directement.",
      "Renseignez le fournisseur, la date et le montant si vous les avez — rien n'est obligatoire.",
-     "Appuyez sur <b>Transmettre</b> : sur téléphone, les photos partent réellement en pièces jointes par WhatsApp ou par mail."],
-  n:"Les photos restent sur votre appareil tant que vous ne les supprimez pas. Ne les effacez qu'une fois transmises."},
+     "Appuyez sur <b>Transmettre</b> : sur téléphone, les photos partent réellement en pièces jointes, à l'adresse de suivi comptable de la société."],
+  n:"L'adresse de destination est inscrite dans l'application et ne se modifie pas. Les photos restent sur votre appareil tant que vous ne les supprimez pas : ne les effacez qu'une fois transmises."},
  {i:"📁",t:"Suivre les encaissements",
   p:["L'<b>Archive</b> réunit tous vos documents validés.",
      "Ouvrez une facture réglée et indiquez la <b>date d'encaissement</b>, ou marquez-la simplement comme réglée.",
@@ -805,8 +804,8 @@ function charger(){
          "Des réseaux qui tiennent","Relier, mesurer, garantir","La précision au bout du fil"];
   }
   delete D.societe.slogan;
-  if(typeof D.reglages.suiviMail!=="string") D.reglages.suiviMail="";
-  if(typeof D.reglages.suiviWa!=="string") D.reglages.suiviWa="";
+  // coordonnees de transmission desormais figees dans le code : on purge les anciennes saisies
+  delete D.reglages.suiviMail; delete D.reglages.suiviWa;
   if(typeof D.reglages.essai!=="boolean") D.reglages.essai=false;
   if(typeof D.reglages.essaisFaits!=="number") D.reglages.essaisFaits=0;
   if(typeof D.reglages.accueilVu!=="boolean") D.reglages.accueilVu=false;
@@ -1059,12 +1058,10 @@ function rendreActions(){
       h+='<button class="btn btn-ok" style="margin-top:10px" onclick="App.devisEnFacture(\''+F.id+'\')">➡️ Transformer en facture</button>';
     h+='<div class="carte" style="margin-top:12px"><h2>Transmettre au suivi comptable</h2>'+
        (tr.date?'<div class="note" style="border-left-color:var(--ok);background:var(--ok-f)">Déjà transmise le '+frDate(tr.date)+
-          ' — '+esc([tr.mail?"mail":"",tr.wa?"WhatsApp":""].filter(Boolean).join(" et "))+'.</div>'
-        :'<p class="lead">Le récapitulatif part avec le numéro, le client, les dates et les montants. Rien à aller chercher.</p>')+
+          ' à '+esc(suivi().mail)+'.</div>'
+        :'<p class="lead">Le récapitulatif part à <b>'+esc(suivi().mail)+'</b> avec le numéro, le client, les dates et les montants. Rien à aller chercher.</p>')+
        '<div class="btn-row">'+
-       '<button class="btn btn-s" onclick="App.transmettre(\'mail\')">✉️ Par mail</button>'+
-       '<button class="btn btn-s" onclick="App.transmettre(\'wa\')">💬 Par WhatsApp</button>'+
-       '<button class="btn btn-p" onclick="App.transmettre(\'deux\')">Les deux</button>'+
+       '<button class="btn btn-p" onclick="App.transmettre(\'mail\')">✉️ Transmettre au suivi comptable</button>'+
        '</div></div>';
     if(verrou){
       h+='<button class="btn btn-f" onclick="App.demanderReouverture()" style="margin-top:8px">🔓 Demander la réouverture à l\'administrateur</button>';
@@ -1947,8 +1944,7 @@ transmettreAchats(quoi){
       '<div class="note warn">Ce navigateur ne sait pas joindre un fichier tout seul. '+
       'Les images vont être téléchargées, puis le message s\'ouvrira : il restera à les y glisser. '+
       'Sur téléphone, l\'envoi direct fonctionne sans cette manipulation.</div>'+
-      '<div class="btn-row"><button class="btn btn-p" onclick="App.replisAchats(\'mail\')">✉️ Par mail</button>'+
-      '<button class="btn btn-s" onclick="App.replisAchats(\'wa\')">💬 WhatsApp</button></div>'+
+      '<div class="btn-row"><button class="btn btn-p" onclick="App.replisAchats(\'mail\')">✉️ Ouvrir le mail pour '+esc(suivi().mail)+'</button></div>'+
       '<div class="btn-row" style="margin-top:8px"><button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
     App._repli={l:l,txt:txt,marquer:marquer};
   });
@@ -1964,9 +1960,7 @@ replisAchats(mode){
   },i*350));
   const suj="Factures d'achat — "+D.societe.nom;
   setTimeout(()=>{
-    const S=suivi();
-    if(mode==="wa") window.open("https://wa.me/"+S.wa+"?text="+encodeURIComponent(r.txt),"_blank");
-    else window.location.href="mailto:"+encodeURIComponent(S.mail)+"?subject="+encodeURIComponent(suj)+"&body="+encodeURIComponent(r.txt);
+    window.location.href="mailto:"+encodeURIComponent(suivi().mail)+"?subject="+encodeURIComponent(suj)+"&body="+encodeURIComponent(r.txt);
   },r.l.length*350+250);
   r.marquer(); toast("Pièces téléchargées — joignez-les au message");
 },
@@ -2026,10 +2020,8 @@ confirmerValidation(){
   ouvrir('<h3>Facture '+esc(num)+' validée</h3>'+
     '<div class="tot"><div class="l"><span>Client</span><b>'+esc(F.client.nom)+'</b></div>'+
     '<div class="l g"><span>TOTAL TTC</span><span>'+eur(t.ttc)+'</span></div></div>'+
-    '<p class="lead">Transmettre le récapitulatif au suivi comptable ?</p>'+
-    '<div class="btn-row"><button class="btn btn-s" onclick="App.transmettreEtFermer(\'mail\')">✉️ Par mail</button>'+
-    '<button class="btn btn-s" onclick="App.transmettreEtFermer(\'wa\')">💬 Par WhatsApp</button>'+
-    '<button class="btn btn-p" onclick="App.transmettreEtFermer(\'deux\')">Les deux</button></div>'+
+    '<p class="lead">Transmettre le récapitulatif à '+esc(suivi().mail)+' ?</p>'+
+    '<div class="btn-row"><button class="btn btn-p" onclick="App.transmettreEtFermer(\'mail\')">✉️ Transmettre</button></div>'+
     '<div class="btn-row" style="margin-top:8px"><button class="btn btn-f" onclick="App.imprimerId(\''+F.id+'\')">🖨️ Imprimer d\'abord</button>'+
     '<button class="btn btn-f" onclick="App.fermer()">Plus tard</button></div>');
 },
@@ -2158,20 +2150,12 @@ transmettre(mode){
   const f=F;
   if(!f||f.statut!=="validee"){ toast("Facture non validée"); return; }
   const txt=App.recapSuivi(f);
-  const tr=f.transmis||{mail:false,wa:false};
-  const S=suivi();
-  if(!suiviPret()){ toast("Coordonnées de suivi non renseignées (espace Admin)"); return; }
-  if((mode==="mail"||mode==="deux")&&S.mail){
-    const url="mailto:"+encodeURIComponent(S.mail)+
-      "?subject="+encodeURIComponent("Facture "+f.numero+" — "+((f.client&&f.client.nom)||""))+
-      "&body="+encodeURIComponent(txt);
-    if(mode==="deux") window.open(url,"_blank"); else window.location.href=url;
-    tr.mail=true;
-  }
-  if((mode==="wa"||mode==="deux")&&S.wa){
-    window.open("https://wa.me/"+S.wa+"?text="+encodeURIComponent(txt),"_blank");
-    tr.wa=true;
-  }
+  const tr=f.transmis||{mail:false};
+  const url="mailto:"+encodeURIComponent(suivi().mail)+
+    "?subject="+encodeURIComponent("Facture "+f.numero+" — "+((f.client&&f.client.nom)||""))+
+    "&body="+encodeURIComponent(txt);
+  window.location.href=url;
+  tr.mail=true;
   tr.date=auj();
   f.transmis=tr;
   if(D.factures[f.id]) D.factures[f.id].transmis=JSON.parse(JSON.stringify(tr));
@@ -2213,8 +2197,7 @@ rendreAdmin(){
     '<div class="duo"><div class="champ"><label>Téléphone</label><input id="sTel" value="'+esc(s.tel)+'" oninput="App.majSociete()"></div>'+
     '<div class="champ"><label>E-mail</label><input id="sMail" value="'+esc(s.email)+'" oninput="App.majSociete()"></div></div>'+
     (s.siret?'':'<div class="note warn">Le SIRET n\'est pas encore renseigné. Il figure sur le courrier de l\'INSEE adressé au siège.</div>');
-  document.getElementById("sSuiviMail").value=D.reglages.suiviMail||"";
-  document.getElementById("sSuiviWa").value=D.reglages.suiviWa||"";
+  document.getElementById("sSuiviMail").value=SUIVI_MAIL;
   document.getElementById("sPrefixe").value=D.reglages.prefixe;
   document.getElementById("sProchain").value=D.reglages.prochain;
   const an=D.reglages.annee;
@@ -2241,7 +2224,6 @@ majSociete(){
   s.adresse=g("sAdr"); s.cp=g("sCp"); s.ville=g("sVil"); s.rcs=g("sRcs");
   s.siret=g("sSiret"); s.tva=g("sTva"); s.tel=g("sTel"); s.email=g("sMail");
   const sl=g("sSlogans"); if(sl!==undefined) s.slogans=sl.split("\n").map(x=>x.trim()).filter(Boolean);
-  D.reglages.suiviMail=g("sSuiviMail"); D.reglages.suiviWa=g("sSuiviWa");
   D.reglages.prefixe=g("sPrefixe")||"FA";
   const p=parseInt(g("sProchain"),10); if(p>0) D.reglages.prochain=p;
   sauver(); majEntete();
