@@ -140,6 +140,11 @@ nav button{flex:1;background:transparent;border:0;padding:9px 2px 8px;color:var(
 nav button.on{color:var(--bleu)}
 nav .i{font-size:18px;line-height:1}
 nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
+.connexion{position:fixed;inset:0;background:#eef2f7;z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
+.connexion.on{display:flex}
+.connexion .boite{max-width:420px;width:100%;background:#fff;border:1px solid var(--trait);border-radius:14px;padding:22px 18px;text-align:center}
+.vign .par{font-size:10.5px;color:var(--gris)}
+#dosChemin a{color:var(--bleu);text-decoration:none;font-weight:600}
 @media(min-width:520px){nav .i{font-size:19px}nav .l{font-size:10.5px}}
 
 /* ---------- guide ---------- */
@@ -409,7 +414,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 <section id="scr-ach" class="screen">
   <div class="carte">
     <h2>Factures d'achat et documents</h2>
-    <p class="lead">Photographiez ou déposez vos factures fournisseurs et vos courriers administratifs. Chaque document est <b>lu puis classé automatiquement</b> dans la rubrique la mieux adaptée — Facture ou Administration — et se retrouve dans l'archive. Transmission au suivi comptable : <b>contact@rezofibre.fr</b>.</p>
+    <p class="lead">Photographiez ou déposez vos factures fournisseurs et vos courriers administratifs. Chaque document est <b>lu puis classé automatiquement</b> dans la rubrique la mieux adaptée — Facture ou Administration — et se retrouve dans l'archive. Transmission au suivi comptable : <b>contact@rezofibre.fr</b>. Les photos sont partagées entre Abdou et Ridha ; Ridha peut effacer les siennes <b>le jour même</b>, ensuite il passe par Abdou.</p>
     <div class="btn-row">
       <button class="btn btn-p" onclick="App.capturer(true)">📷 Prendre une photo</button>
       <button class="btn btn-s" onclick="App.capturer(false)">📎 Choisir un fichier</button>
@@ -428,6 +433,18 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
   <div class="recherche"><input id="rechArc" placeholder="🔍 Numéro, client, montant…" oninput="App.listeArchive()"></div>
   <div id="resumeArc"></div>
   <div id="listeArchive"></div>
+</section>
+
+<!-- ==================== DOSSIERS ==================== -->
+<section id="scr-dos" class="screen">
+  <div class="carte">
+    <h2>Dossiers de l'entreprise</h2>
+    <p class="lead" id="dosChemin"></p>
+    <div id="dosActions"></div>
+    <input type="file" id="fDos" multiple style="display:none" onchange="App.ajouterFichiers(event)">
+  </div>
+  <div class="recherche"><input id="rechDos" placeholder="🔍 Rechercher un document…" oninput="App.rendreDossiers()"></div>
+  <div id="listeDossiers"></div>
 </section>
 
 <!-- ==================== ADMIN ==================== -->
@@ -477,6 +494,16 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
     </div>
 
     <div class="carte">
+      <h2>Accès et partage</h2>
+      <p class="lead">Abdou administre l'application. Ridha consulte tout et gère la rubrique Photo : il peut effacer ses photos le jour même de la prise, ensuite il doit passer par vous. Ces règles sont appliquées par le serveur.</p>
+      <div class="btn-row">
+        <button class="btn btn-p" onclick="App.partagerAccesRidha()">📲 Envoyer son accès à Ridha</button>
+        <button class="btn btn-f" onclick="App.synchroniser()">↻ Synchroniser</button>
+      </div>
+      <div style="margin-top:8px"><button class="btn btn-f" onclick="App.deconnecter()">Déconnecter cet appareil</button></div>
+    </div>
+
+    <div class="carte">
       <h2>Données</h2>
       <div class="btn-row">
         <button class="btn btn-f" onclick="App.exporter()">⬇️ Exporter (JSON)</button>
@@ -497,6 +524,8 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
   <button class="on" data-tab="acc" onclick="App.aller('acc')"><span class="i">🏠</span><span class="l">Accueil</span></button>
   <button data-tab="new" onclick="App.aller('new')"><span class="i">🧾</span><span class="l">Facture</span></button>
   <button data-tab="ach" onclick="App.aller('ach')"><span class="i">📷</span><span class="l">Photo</span></button>
+  <button data-tab="dos" onclick="App.aller('dos')"><span class="i">🗂️</span><span class="l">Dossiers</span></button>
+  <button data-tab="arc" data-lecteur="1" onclick="App.aller('arc')"><span class="i">📁</span><span class="l">Archive</span></button>
   <button data-tab="avo" onclick="App.aller('avo')"><span class="i">↩️</span><span class="l">Avoir</span></button>
   <button data-tab="bcm" onclick="App.aller('bcm')"><span class="i">📋</span><span class="l">Commande</span></button>
   <button data-tab="cli" onclick="App.aller('cli')"><span class="i">👥</span><span class="l">Clients</span></button>
@@ -504,6 +533,14 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 </nav>
 
 <div class="ov" id="ov" onclick="if(event.target===this)App.fermer()"><div class="sheet" id="ovSheet"></div></div>
+<div id="connexion" class="connexion"><div class="boite">
+  <div style="font-size:34px">🔐</div>
+  <h2 style="justify-content:center;margin:8px 0">Connexion à REZO FIBRE</h2>
+  <p class="lead">Ouvrez le lien d'accès personnel que vous avez reçu, ou collez-le ici.</p>
+  <div class="champ"><input id="cxCle" placeholder="Lien ou clé d'accès" autocomplete="off"></div>
+  <button class="btn btn-p" onclick="App.validerCle()">Se connecter</button>
+  <p class="lead" id="cxMsg" style="margin-top:12px;color:var(--alerte)"></p>
+</div></div>
 <div id="toast"></div>
 <div id="zoneImpression"></div>
 
@@ -512,7 +549,7 @@ nav .l{font-size:9.5px;font-weight:600;white-space:nowrap}
 (function(){
 
 const CLE="rezofibreFacturation_v1";
-const VERSION="1.4";
+const VERSION="1.5";
 
 /* Destinataire du suivi comptable : adresse de transmission figee.
    Elle ne se modifie pas depuis l'application : tout ce qui est transmis part la, et nulle part ailleurs. */
@@ -805,6 +842,9 @@ function ibanDe(f){
 
 function charger(){
   try{ const b=localStorage.getItem(CLE); if(b) D=JSON.parse(b); }catch(e){ D=null; }
+  completer();
+}
+function completer(){
   if(!D||!D.societe) D=neuf();
   if(!D.clients) D.clients={};
   if(!D.ibans) D.ibans={};
@@ -840,9 +880,18 @@ function charger(){
   if(!D.reglages.prochainAvoir) D.reglages.prochainAvoir=1;
   if(!D.reglages.anneeAvoir) D.reglages.anneeAvoir=new Date().getFullYear();
   tirerSlogan();
-  sauver();
+  sauverLocal();
 }
-function sauver(){ try{ localStorage.setItem(CLE,JSON.stringify(D)); }catch(e){ toast("Enregistrement impossible — mémoire du navigateur pleine"); } }
+function sauverLocal(){ try{ localStorage.setItem(CLE,JSON.stringify(D)); }catch(e){ toast("Enregistrement impossible — mémoire du navigateur pleine"); } }
+/* Ridha consulte : rien de ce qu'il change n'est garde, l'etat du serveur est retabli. */
+function sauver(){
+  if(lecteur()){
+    try{ const b=localStorage.getItem(CLE); if(b){ D=JSON.parse(b); } }catch(e){}
+    toast("Consultation seule — modification non enregistrée. Demandez à Abdou.");
+    return;
+  }
+  sauverLocal(); pousser();
+}
 
 function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("on");
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),2600); }
@@ -1401,22 +1450,22 @@ function bdd(){
 function magasin(mode){
   return bdd().then(db=>db?db.transaction(BDD_MAG,mode).objectStore(BDD_MAG):null);
 }
-function achatMettre(o){
+function localMettre(o){
   return magasin("readwrite").then(m=>m?new Promise((ok,ko)=>{
     const r=m.put(o); r.onsuccess=()=>ok(o); r.onerror=()=>ko(r.error);
   }):Promise.reject(new Error("stockage indisponible")));
 }
-function achatTous(){
+function localTous(){
   return magasin("readonly").then(m=>m?new Promise(ok=>{
     const r=m.getAll(); r.onsuccess=()=>ok(r.result||[]); r.onerror=()=>ok([]);
   }):[]);
 }
-function achatLire(id){
+function localLire(id){
   return magasin("readonly").then(m=>m?new Promise(ok=>{
     const r=m.get(id); r.onsuccess=()=>ok(r.result||null); r.onerror=()=>ok(null);
   }):null);
 }
-function achatEffacer(id){
+function localEffacer(id){
   return magasin("readwrite").then(m=>m?new Promise(ok=>{
     const r=m.delete(id); r.onsuccess=()=>ok(true); r.onerror=()=>ok(false);
   }):false);
@@ -1442,6 +1491,186 @@ function poids(n){
   if(n<1024) return n+" o";
   if(n<1048576) return (n/1024).toFixed(0)+" Ko";
   return (n/1048576).toFixed(1)+" Mo";
+}
+
+/* =============== serveur partage (Google Drive d'Abdou, via Apps Script) =================
+   Chaque appareil se connecte avec une cle personnelle. Le serveur connait deux roles :
+   - admin (Abdou) : lit et modifie tout ;
+   - ridha (Ridha) : consulte tout ; dans la rubrique Photo, il ajoute, modifie et efface
+     ses photos le jour meme de la prise. Le lendemain, il doit passer par l'administrateur.
+   Les droits sont controles par le serveur : l'application ne fait qu'en refleter l'effet. */
+const API="__API_URL__";
+const CLE_ACCES="rezofibreCle", CLE_ROLE="rezofibreRole", CLE_SALE="rezofibreSale", CLE_DOS="rezofibreDossiers";
+const ONGLETS_ECRITURE=["new","dev","bcm","avo","cli","adm"];
+const TUILES_LECTEUR=["ach","dos","arc","ban","aid"];
+let ROLE=null, JOUR_SRV="";
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
+function lecteur(){ return ROLE==="ridha"; }
+function jourParis(){
+  try{ return new Intl.DateTimeFormat("fr-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()); }
+  catch(e){ return auj(); }
+}
+function nomRole(r){ return r==="admin"?"Abdou":(r==="ridha"?"Ridha":""); }
+const Srv={
+  cle(){ return lsGet(CLE_ACCES)||""; },
+  appel(action,o){
+    if(!Srv.cle()) return Promise.reject(Object.assign(new Error("Non connecté"),{horsLigne:true}));
+    const corps=Object.assign({},o||{},{action:action,cle:Srv.cle()});
+    return fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+                      body:JSON.stringify(corps),redirect:"follow"})
+      .catch(()=>{ throw Object.assign(new Error("Pas de connexion au serveur"),{horsLigne:true}); })
+      .then(r=>{ if(!r.ok) throw Object.assign(new Error("Serveur indisponible ("+r.status+")"),{horsLigne:true}); return r.json(); })
+      .then(j=>{
+        if(j.jour) JOUR_SRV=j.jour;
+        if(j.code===401){ Srv.cleRefusee(); throw Object.assign(new Error(j.err),{refus:true}); }
+        if(j.role&&j.role!==ROLE){ ROLE=j.role; lsSet(CLE_ROLE,ROLE); appliquerRole(); }
+        if(!j.ok) throw Object.assign(new Error(j.err||"Erreur du serveur"),{refus:true});
+        return j;
+      });
+  },
+  cleRefusee(){
+    lsSet(CLE_ACCES,null); lsSet(CLE_ROLE,null); ROLE=null; appliquerRole();
+    App.ecranConnexion("Cette clé d'accès n'est pas (ou plus) valable.");
+  }
+};
+function b64DeBlob(b){
+  return new Promise((ok,ko)=>{ const r=new FileReader();
+    r.onload=()=>ok(String(r.result).split(",")[1]||""); r.onerror=()=>ko(r.error); r.readAsDataURL(b); });
+}
+function blobDeB64(b64,type){
+  const s=atob(b64||""); const u=new Uint8Array(s.length);
+  for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i);
+  return new Blob([u],{type:type||"application/octet-stream"});
+}
+function vignetteDe(b){
+  return new Promise(ok=>{
+    if(!b||!/^image\//.test(b.type)||typeof createImageBitmap!=="function"){ ok(""); return; }
+    createImageBitmap(b).then(bmp=>{
+      const M=260, e=Math.min(1,M/Math.max(bmp.width,bmp.height));
+      const c=document.createElement("canvas"); c.width=Math.round(bmp.width*e); c.height=Math.round(bmp.height*e);
+      c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+      ok(c.toDataURL("image/jpeg",0.6));
+    }).catch(()=>ok(""));
+  });
+}
+
+/* ---- donnees de facturation : le serveur fait foi ---- */
+let PUSH_T=null;
+function pousser(){
+  if(ROLE!=="admin") return;
+  lsSet(CLE_SALE,"1");
+  clearTimeout(PUSH_T);
+  PUSH_T=setTimeout(()=>{
+    const txt=JSON.stringify(D);
+    Srv.appel("enregistrerDonnees",{donnees:txt})
+      .then(()=>{ if(JSON.stringify(D)===txt) lsSet(CLE_SALE,null); })
+      .catch(e=>{ if(!e.horsLigne) toast("Serveur : "+e.message); });
+  },1500);
+}
+function syncDonnees(){
+  return Srv.appel("donnees").then(j=>{
+    let srvD=null; try{ srvD=j.donnees?JSON.parse(j.donnees):null; }catch(e){ srvD=null; }
+    const vol=o=>o?Object.keys(o.factures||{}).length+Object.keys(o.clients||{}).length:0;
+    if(ROLE==="admin"){
+      /* Premier branchement d'un appareil d'Abdou : on ne remplace jamais des donnees locales
+         plus fournies par une copie serveur plus pauvre. */
+      const premiere=!lsGet("rezofibreSync");
+      if(!srvD||lsGet(CLE_SALE)||(premiere&&vol(D)>vol(srvD))){ lsSet("rezofibreSync","1"); pousser(); return; }
+    }
+    lsSet("rezofibreSync","1");
+    if(!srvD||!srvD.societe) return;
+    D=srvD;
+    completer();
+    if(!F||lecteur()||!D.brouillon) F=D.brouillon?JSON.parse(JSON.stringify(D.brouillon)):factureNeuve();
+  });
+}
+
+/* ---- rubrique Photo : cache local (IndexedDB) + serveur partage ---- */
+const CHAMPS_P=["nom","fournisseur","date","montant","note","rubrique","auto","confiance","type","taille","cree","transmisLe","vignette"];
+function metaDe(p){ const m={id:p.id}; CHAMPS_P.forEach(c=>{ if(p[c]!==undefined) m[c]=p[c]; }); return m; }
+let FILE_P=Promise.resolve();
+function enFile(t){ const p=FILE_P.then(t,t); FILE_P=p.catch(()=>{}); return p; }
+/* Ridha : ses propres photos, le jour meme seulement. Une photo pas encore envoyee reste a lui. */
+function peutToucher(p){
+  if(!ROLE||ROLE==="admin") return true;
+  if(!p||p.sync!=="ok") return true;
+  return p.par==="ridha"&&p.jour===(JOUR_SRV||jourParis());
+}
+function fusionner(p,m){ Object.assign(p,m||{}); p.sync="ok"; return localMettre(p).then(()=>p); }
+function envoyerPiece(id){
+  return enFile(()=>localLire(id).then(p=>{
+    if(!p||!ROLE) return p;
+    if(p.sync==="ok") return Srv.appel("majPhoto",{meta:metaDe(p)}).then(j=>fusionner(p,j.photo));
+    if(p.auto==="encours"&&Date.now()-(p.cree||0)<180000) return p;   // lecture automatique en cours : envoi apres
+    if(!p.blob) return p;
+    return (p.vignette?Promise.resolve(p.vignette):vignetteDe(p.blob)).then(v=>{
+      p.vignette=v;
+      return b64DeBlob(p.blob).then(b64=>Srv.appel("ajouterPhoto",{meta:metaDe(p),b64:b64}))
+        .then(j=>fusionner(p,j.photo));
+    });
+  }));
+}
+function achatMettre(o){
+  if(o.sync!=="ok") o.sync="attente";
+  return localMettre(o).then(()=>{
+    if(!ROLE) return o;
+    return envoyerPiece(o.id).then(p=>p||o).catch(e=>{
+      if(e.refus){ return achatTous().then(()=>{ throw e; }); }
+      return o;                                   // hors connexion : renvoi automatique plus tard
+    });
+  });
+}
+function achatTous(){
+  return localTous().then(loc=>{
+    if(!ROLE) return loc;
+    return Srv.appel("photos").then(j=>{
+      const srv={}; (j.photos||[]).forEach(m=>{ srv[m.id]=m; });
+      const ops=[], res=[], attente=[];
+      loc.forEach(p=>{
+        if(srv[p.id]){
+          const n=Object.assign({},p,srv[p.id],{sync:"ok"}); delete srv[p.id];
+          if(p.sync!=="ok"||JSON.stringify(metaDe(p))!==JSON.stringify(metaDe(n))||p.par!==n.par||p.jour!==n.jour) ops.push(localMettre(n));
+          res.push(n);
+        } else if(p.sync==="ok"){ ops.push(localEffacer(p.id)); }  // effacee par ailleurs
+        else { res.push(p); if(p.auto!=="encours"||Date.now()-(p.cree||0)>=180000) attente.push(p.id); }
+      });
+      Object.keys(srv).forEach(k=>{ const n=Object.assign({blob:null},srv[k],{sync:"ok"}); ops.push(localMettre(n)); res.push(n); });
+      return Promise.all(ops).then(()=>{
+        if(attente.length) Promise.all(attente.map(id=>envoyerPiece(id).catch(()=>null)))
+          .then(r=>{ if(r.some(x=>x&&x.sync==="ok")&&(ecran==="ach"||ecran==="arc")) setTimeout(()=>{ if(ecran==="ach") App.listeAchats(); else App.listeArchive(); },50); });
+        return res;
+      });
+    }).catch(()=>loc);
+  });
+}
+function achatLire(id){
+  return localLire(id).then(p=>{
+    if(!p||p.blob||p.sync!=="ok"||!ROLE) return p;
+    return Srv.appel("photo",{id:id}).then(j=>{ p.blob=blobDeB64(j.b64,j.type||p.type); return localMettre(p).then(()=>p); })
+      .catch(()=>p);
+  });
+}
+function achatEffacer(id){
+  return localLire(id).then(p=>{
+    if(!p) return true;
+    if(!ROLE||p.sync!=="ok") return localEffacer(id);
+    return enFile(()=>Srv.appel("supprimerPhoto",{id:id})).then(()=>localEffacer(id));
+  });
+}
+
+/* ---- role : ce que l'ecran montre ---- */
+function appliquerRole(){
+  document.body.classList.toggle("lecteur",lecteur());
+  document.querySelectorAll("nav button").forEach(b=>{
+    const t=b.dataset.tab;
+    let cache=false;
+    if(lecteur()&&ONGLETS_ECRITURE.indexOf(t)>=0) cache=true;
+    if(!lecteur()&&b.dataset.lecteur==="1") cache=true;
+    b.style.display=cache?"none":"";
+  });
+  if(lecteur()) admin=false;
+  if(typeof App!=="undefined"&&D) majEntete();
 }
 
 /* =============== installation sur l'ecran d'accueil =================
@@ -1641,8 +1870,8 @@ function analyserPiece(id){
 
 /* Vignette d'une piece — meme rendu dans l'ecran Photo et dans l'archive. */
 function vignettePiece(p){
-  const u=URL.createObjectURL(p.blob);
-  const img=/^image\//.test(p.type)?'<img class="img" src="'+u+'" alt="">':'<div class="pdf">📄</div>';
+  const u=p.blob?URL.createObjectURL(p.blob):(p.vignette||"");
+  const img=(/^image\//.test(p.type)&&u)?'<img class="img" src="'+u+'" alt="">':'<div class="pdf">'+(/pdf/.test(p.type||"")?"📄":"🖼️")+'</div>';
   const enc=p.auto==="encours";
   const r=rubDe(p), cfg=RUBRIQUES[r];
   const et=enc?'<div class="rub enc">⏳ lecture…</div>'
@@ -1652,6 +1881,7 @@ function vignettePiece(p){
     '<div class="bas"><div class="n">'+esc(p.fournisseur||p.nom)+'</div>'+
     '<div class="d">'+frDate(p.date)+(p.montant?" · "+esc(p.montant)+" €":"")+'</div>'+
     '<div class="d">'+(p.transmisLe?'<span style="color:var(--ok)">✓ transmise</span>':'<span style="color:var(--attente)">à transmettre</span>')+'</div>'+
+    (ROLE?'<div class="par">'+(p.sync==="ok"?'📷 '+esc(nomRole(p.par)||"—")+(peutToucher(p)?'':' · 🔒'):'⏳ envoi en attente')+'</div>':'')+
     '</div></div>';
 }
 
@@ -1692,13 +1922,22 @@ function barrePieces(l,opts){
 }
 
 /* =============== overlay =============== */
-function ouvrir(html){ document.getElementById("ovSheet").innerHTML=html; document.getElementById("ov").classList.add("on"); }
+function ouvrir(html){
+  const sh=document.getElementById("ovSheet");
+  sh.innerHTML=html;
+  if(lecteur()) sh.querySelectorAll("button").forEach(b=>{
+    if(/marquerPaye|marquerImpaye|rouvrirDansEditeur|creerAvoir|ficheIban|ficheClient|enregistrerIban|supprimerIban|defautIban|majSociete/
+       .test(b.getAttribute("onclick")||"")) b.style.display="none";
+  });
+  document.getElementById("ov").classList.add("on");
+}
 function fermer(){ document.getElementById("ov").classList.remove("on"); }
 
 /* =============== App =============== */
 const App={
 
 aller(t){
+  if(lecteur()&&ONGLETS_ECRITURE.indexOf(t)>=0){ toast("Consultation seule : réservé à l'administrateur"); t="acc"; }
   ecran=t;
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
   const cible=(t==="dev"||t==="bcm")?"new":t;
@@ -1717,6 +1956,7 @@ aller(t){
   if(t==="ach") App.listeAchats();
   if(t==="arc") listeArchive();
   if(t==="adm") App.rendreAdmin();
+  if(t==="dos") App.listeDossiers();
 },
 
 brouillon(){
@@ -1986,6 +2226,7 @@ TUILES:[
   ["ban","🏦","Banque","Vos comptes et vos IBAN"],
   ["ach","📷","Photo","Photographier vos factures et vos courriers administratifs"],
   ["arc","📁","Archive","Documents émis, factures d'achat et administration"],
+  ["dos","🗂️","Dossiers","Les documents de l'entreprise, rangés par rubrique"],
   ["aid","❓","Guide","Comment utiliser l'application, pas à pas"]
 ],
 TUILE_ADMIN:["adm","⚙️","Admin","Société, numérotation, autorisations"],
@@ -1996,7 +2237,7 @@ brancherLogo(){
   img._branche=true;
   img.style.cursor="default";
   img.addEventListener("click",()=>{
-    if(admin) return;
+    if(admin||lecteur()) return;
     const t=Date.now();
     App._taps=(t-App._tapT>2500)?1:App._taps+1;
     App._tapT=t;
@@ -2030,7 +2271,8 @@ rendreAccueil(){
         {weekday:"long",day:"numeric",month:"long",year:"numeric"});
   }catch(e){ document.getElementById("dateAcc").textContent=frDate(auj()); }
 
-  const tuiles=admin?App.TUILES.concat([App.TUILE_ADMIN]):App.TUILES;
+  const tuiles=lecteur()?App.TUILES.filter(t=>TUILES_LECTEUR.indexOf(t[0])>=0)
+              :(admin?App.TUILES.concat([App.TUILE_ADMIN]):App.TUILES);
   document.getElementById("tuilesAcc").innerHTML=tuiles.map(t=>
     '<div class="tuile" onclick="App.aller(\''+t[0]+'\')">'+
       '<span class="ic">'+t[1]+'</span><div><div class="tt">'+t[2]+'</div>'+
@@ -2269,6 +2511,184 @@ confirmerAvoir(id){
   App.ouvrirArchive(a.id);
 },
 
+/* ---------- connexion au serveur ---------- */
+ecranConnexion(msg){
+  const z=document.getElementById("connexion");
+  document.getElementById("cxMsg").textContent=msg||"";
+  z.classList.add("on");
+},
+validerCle(){
+  const v=(document.getElementById("cxCle").value||"").trim();
+  const m=v.match(/cle=([A-Za-z0-9]+)/);
+  const cle=m?m[1]:v.replace(/[^A-Za-z0-9]/g,"");
+  if(cle.length<20){ document.getElementById("cxMsg").textContent="Clé incomplète : collez le lien reçu en entier."; return; }
+  lsSet(CLE_ACCES,cle);
+  document.getElementById("cxMsg").textContent="Vérification…";
+  App.connecter(true);
+},
+connecter(manuel){
+  return Srv.appel("moi").then(j=>{
+    document.getElementById("connexion").classList.remove("on");
+    document.getElementById("cxCle").value="";
+    ROLE=j.role; lsSet(CLE_ROLE,ROLE); appliquerRole();
+    if(manuel) toast(ROLE==="admin"?"Connecté : Abdou — administrateur":"Connecté : Ridha — consultation et photos");
+    return syncDonnees().catch(()=>{}).then(()=>{
+      majEntete();
+      const e=lecteur()&&ONGLETS_ECRITURE.indexOf(ecran)>=0?"acc":ecran;
+      if(e!=="new") App.aller(e);
+      achatTous().catch(()=>{});
+    });
+  }).catch(e=>{
+    if(e.horsLigne&&lsGet(CLE_ROLE)){ toast("Hors connexion — données de l'appareil"); return; }
+    if(e.horsLigne){ App.ecranConnexion("Pas de connexion au serveur. Vérifiez internet puis réessayez."); return; }
+    App.ecranConnexion(e.message);
+  });
+},
+deconnecter(){
+  ouvrir('<h3>Déconnecter cet appareil ?</h3>'+
+    '<div class="note warn">L\'application oubliera la clé d\'accès de ce téléphone. Il faudra rouvrir le lien reçu pour se reconnecter. '+
+    'Les photos non encore envoyées au serveur restent sur l\'appareil.</div>'+
+    '<div class="btn-row"><button class="btn btn-d" onclick="App.confirmerDeconnexion()">Déconnecter</button>'+
+    '<button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
+},
+confirmerDeconnexion(){
+  lsSet(CLE_ACCES,null); lsSet(CLE_ROLE,null); ROLE=null; admin=false; appliquerRole(); fermer();
+  App.aller("acc"); App.ecranConnexion("");
+},
+partagerAccesRidha(){
+  Srv.appel("lienRidha").then(j=>{
+    const txt="Accès à l'application REZO FIBRE (personnel, ne pas transférer) : "+j.lien;
+    if(navigator.share){ navigator.share({title:"Application REZO FIBRE",text:txt}).catch(()=>{}); return; }
+    ouvrir('<h3>Lien d\'accès de Ridha</h3>'+
+      '<div class="note warn">Ce lien est sa clé personnelle : envoyez-le uniquement à Ridha.</div>'+
+      '<div class="champ"><input id="lienR" readonly value="'+esc(j.lien)+'" onclick="this.select()"></div>'+
+      '<div class="btn-row"><a class="btn btn-p" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank">WhatsApp</a>'+
+      '<button class="btn btn-f" onclick="App.fermer()">Fermer</button></div>');
+  }).catch(e=>toast(e.message));
+},
+synchroniser(){
+  toast("Synchronisation…");
+  syncDonnees().then(()=>achatTous()).then(()=>{ App._dosArbre=null; App.aller(ecran==="new"?"acc":ecran); toast("À jour"); })
+    .catch(e=>toast(e.message));
+},
+verrouPiece(p){
+  if(peutToucher(p)) return;
+  const sh=document.getElementById("ovSheet");
+  sh.querySelectorAll("input").forEach(i=>{ i.disabled=true; });
+  sh.querySelectorAll("button").forEach(b=>{
+    const oc=b.getAttribute("onclick")||"";
+    if(/enregistrerAchat|supprimerAchat|choisirRubrique/.test(oc)) b.style.display="none";
+  });
+  const n=document.createElement("div");
+  n.className="note warn";
+  n.innerHTML="🔒 Photo "+(p.par==="admin"?"ajoutée par Abdou":"prise le "+esc(frDate(p.jour||p.date)))+
+    " : vous ne pouvez plus la modifier ni l'effacer. Pour toute correction, <b>passez par Abdou</b>.";
+  sh.insertBefore(n,sh.children[2]||null);
+},
+
+/* ---------- rubriques : dossiers de l'entreprise ---------- */
+_dosArbre:null,
+_dosChemin:[],
+ICONES_DOS:{"ADMINISTRATION":"🏛️","ASSURANCE":"🛡️","BANQUE":"🏦","CENTRE_DES_IMPOTS":"💶","COMPTABILITE":"📊",
+  "CONTRAT_FOURNISSEURS":"🤝","COREL":"🎨","FACTURATION":"🧾","K-BIS":"📜","NET_ENTREPRISES":"🌐",
+  "PERSONNEL":"👷","PORTAILPRO.GOUV":"🏢","TéléDSN":"📤","URSSAF":"🏛️","VEHICULE":"🚐"},
+nomDos(s){ return String(s||"").replace(/_/g," "); },
+compteDos(n){ return (n.fichiers||[]).length+(n.dossiers||[]).reduce((a,d)=>a+App.compteDos(d),0); },
+listeDossiers(recharger){
+  const z=document.getElementById("listeDossiers");
+  if(!Srv.cle()){ z.innerHTML='<div class="vide">Connectez-vous pour consulter les dossiers.</div>'; return; }
+  if(!App._dosArbre){ try{ const c=lsGet(CLE_DOS); if(c) App._dosArbre=JSON.parse(c); }catch(e){} }
+  if(App._dosArbre) App.rendreDossiers();
+  else z.innerHTML='<div class="vide">Chargement des dossiers…</div>';
+  if(App._dosArbre&&!recharger&&App._dosFrais) return;
+  Srv.appel("dossiers").then(j=>{
+    App._dosArbre=j.arbre; App._dosFrais=true; lsSet(CLE_DOS,JSON.stringify(j.arbre));
+    if(ecran==="dos") App.rendreDossiers();
+  }).catch(e=>{
+    if(!App._dosArbre) z.innerHTML='<div class="vide">Dossiers indisponibles : '+esc(e.message)+'</div>';
+    else if(recharger) toast("Hors connexion — dernière liste connue");
+  });
+},
+dosCourant(){
+  let n=App._dosArbre; const ch=[];
+  for(const id of App._dosChemin){
+    const s=(n.dossiers||[]).filter(d=>d.id===id)[0]; if(!s) break; n=s; ch.push(s);
+  }
+  App._dosChemin=ch.map(d=>d.id);
+  return {n:n,ch:ch};
+},
+rendreDossiers(){
+  if(!App._dosArbre) return;
+  const c=App.dosCourant(), n=c.n, ch=c.ch;
+  const q=(document.getElementById("rechDos").value||"").toLowerCase().trim();
+  document.getElementById("dosChemin").innerHTML=
+    '<a href="javascript:void(0)" onclick="App.remonterDos(0)">🗂️ Rubriques</a>'+
+    ch.map((d,i)=>' › <a href="javascript:void(0)" onclick="App.remonterDos('+(i+1)+')">'+esc(App.nomDos(d.nom))+'</a>').join("");
+  document.getElementById("dosActions").innerHTML=
+    (ch.length?'<button class="btn btn-f mini" onclick="App.remonterDos('+(ch.length-1)+')">← Retour</button> ':'')+
+    (ROLE==="admin"&&ch.length?'<button class="btn btn-s mini" onclick="document.getElementById(\'fDos\').click()">＋ Ajouter un document ici</button> ':'')+
+    '<button class="btn btn-f mini" onclick="App.listeDossiers(true)">↻ Actualiser</button>'+
+    (lecteur()?'<p class="lead" style="margin:8px 0 0">Consultation seule. Pour ajouter ou retirer un document, demandez à Abdou.</p>':'');
+  const z=document.getElementById("listeDossiers");
+  const fic=(f,chemin)=>'<div class="item" onclick="App.ouvrirFichier(\''+f.id+'\')"><div>'+
+      '<div class="n">'+(/pdf/.test(f.type)?"📄":(/image/.test(f.type)?"🖼️":"📎"))+' '+esc(f.nom)+'</div>'+
+      '<div class="d">'+(chemin?esc(chemin)+' · ':'')+poids(f.taille||0)+' · '+frDate(new Date(f.maj).toISOString().slice(0,10))+'</div>'+
+    '</div></div>';
+  if(q){
+    const res=[];
+    const tour=(d,ch2)=>{ (d.fichiers||[]).forEach(f=>{ if(f.nom.toLowerCase().includes(q)) res.push([f,ch2]); });
+      (d.dossiers||[]).forEach(s=>tour(s,(ch2?ch2+" › ":"")+App.nomDos(s.nom))); };
+    tour(n,"");
+    z.innerHTML=res.length?res.map(r=>fic(r[0],r[1])).join(""):'<div class="vide">Aucun document pour cette recherche.</div>';
+    return;
+  }
+  const ds=(n.dossiers||[]).map(d=>{
+    const nb=App.compteDos(d);
+    return '<div class="tuile" onclick="App.ouvrirDos(\''+d.id+'\')"><span class="ic">'+
+      (ch.length?"📁":(App.ICONES_DOS[d.nom]||"📁"))+'</span><div><div class="tt">'+esc(App.nomDos(d.nom))+'</div>'+
+      '<div class="ss">'+nb+' document'+(nb>1?"s":"")+'</div></div></div>';
+  }).join("");
+  z.innerHTML=(ds?'<div class="tuiles" style="margin-top:0;margin-bottom:12px">'+ds+'</div>':'')+
+    (n.fichiers||[]).map(f=>fic(f,"")).join("")+
+    (!ds&&!(n.fichiers||[]).length?'<div class="vide">Rubrique vide.</div>':'');
+},
+ouvrirDos(id){ App._dosChemin.push(id); document.getElementById("rechDos").value=""; App.rendreDossiers(); window.scrollTo(0,0); },
+remonterDos(i){ App._dosChemin=App._dosChemin.slice(0,i); App.rendreDossiers(); window.scrollTo(0,0); },
+ouvrirFichier(id){
+  toast("Ouverture…");
+  Srv.appel("fichier",{id:id}).then(j=>{
+    const b=blobDeB64(j.b64,j.type), u=URL.createObjectURL(b);
+    const img=/^image\//.test(j.type);
+    ouvrir('<h3>'+esc(j.nom)+'</h3>'+
+      '<p class="lead">'+poids(b.size)+'</p>'+
+      (img?'<img class="apercu" src="'+u+'">':'')+
+      '<div class="btn-row"><a class="btn btn-p" href="'+u+'" target="_blank" rel="noopener">↗️ Ouvrir</a>'+
+      '<a class="btn btn-s" href="'+u+'" download="'+esc(j.nom)+'">⬇️ Télécharger</a></div>'+
+      (ROLE==="admin"?'<div class="btn-row" style="margin-top:8px"><button class="btn btn-d" onclick="App.supprimerFichier(\''+id+'\')">Supprimer ce document</button></div>':'')+
+      '<div class="btn-row" style="margin-top:8px"><button class="btn btn-f" onclick="App.fermer()">Fermer</button></div>');
+  }).catch(e=>toast(e.horsLigne?"Pas de connexion : document indisponible":e.message));
+},
+ajouterFichiers(ev){
+  const l=Array.from(ev.target.files||[]); ev.target.value="";
+  if(!l.length||ROLE!=="admin") return;
+  const c=App.dosCourant();
+  toast("Envoi de "+l.length+" document"+(l.length>1?"s":"")+"…");
+  l.reduce((pr,f)=>pr.then(()=>b64DeBlob(f).then(b64=>Srv.appel("ajouterFichier",
+      {dossier:c.n.id,nom:f.name,type:f.type||"application/octet-stream",b64:b64}))),Promise.resolve())
+    .then(()=>{ toast("Document"+(l.length>1?"s":"")+" ajouté"+(l.length>1?"s":"")); App.listeDossiers(true); })
+    .catch(e=>toast(e.message));
+},
+supprimerFichier(id){
+  ouvrir('<h3>Supprimer ce document ?</h3>'+
+    '<div class="note warn">Il part dans la corbeille de Google Drive (récupérable pendant 30 jours) et disparaît pour tout le monde.</div>'+
+    '<div class="btn-row"><button class="btn btn-d" onclick="App.confirmerSupFichier(\''+id+'\')">Supprimer</button>'+
+    '<button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
+},
+confirmerSupFichier(id){
+  Srv.appel("supprimerFichier",{id:id}).then(()=>{ fermer(); toast("Document supprimé"); App.listeDossiers(true); })
+    .catch(e=>toast(e.message));
+},
+
 /* ---------- factures d'achat ---------- */
 capturer(photo){ document.getElementById(photo?"fAchatPhoto":"fAchatFichier").click(); },
 ajouterAchats(ev){
@@ -2360,7 +2780,7 @@ supprimerSelection(){
     const n=l.length, nt=l.filter(p=>!p.transmisLe).length;
     ouvrir('<h3>Supprimer '+n+' pièce'+(n>1?"s":"")+' ?</h3>'+
       '<div class="note warn">'+(n>1?'Ces photos seront définitivement effacées':'Cette photo sera définitivement effacée')+
-      ' de cet appareil.'+
+      (ROLE?' pour tout le monde (Abdou et Ridha).':' de cet appareil.')+
       (nt?' <b>'+(nt>1?nt+" n'ont":"1 n'a")+' pas encore été transmise'+(nt>1?"s":"")+'</b> au suivi comptable.':'')+
       '</div>'+
       '<div class="tot">'+l.slice(0,8).map(p=>'<div class="l"><span>'+esc(p.fournisseur||p.nom)+'</span>'+
@@ -2373,17 +2793,19 @@ supprimerSelection(){
 confirmerSupSelection(){
   const ids=Object.keys(App._achatsSel).filter(k=>App._achatsSel[k]);
   if(!ids.length){ fermer(); return; }
-  Promise.all(ids.map(id=>achatEffacer(id))).then(()=>{
-    ids.forEach(id=>{ delete App._achatsSel[id]; });
+  Promise.all(ids.map(id=>achatEffacer(id).then(()=>({id:id,ok:true}),e=>({id:id,ok:false,m:e.message})))).then(rs=>{
+    const ok=rs.filter(x=>x.ok), ko=rs.filter(x=>!x.ok);
+    ok.forEach(x=>{ delete App._achatsSel[x.id]; });
     fermer();
     if(ecran==="arc") App.listeArchive(); else App.listeAchats();
-    toast(ids.length>1?ids.length+" pièces supprimées":"Pièce supprimée");
-  }).catch(()=>toast("Suppression impossible sur cet appareil"));
+    if(!ko.length) toast(ok.length>1?ok.length+" pièces supprimées":"Pièce supprimée");
+    else toast((ok.length?ok.length+" supprimée"+(ok.length>1?"s":"")+" — ":"")+ko.length+" refusée"+(ko.length>1?"s":"")+" : "+ko[0].m);
+  });
 },
 ouvrirAchat(id){
   achatLire(id).then(p=>{
     if(!p) return;
-    const u=URL.createObjectURL(p.blob);
+    const u=p.blob?URL.createObjectURL(p.blob):(p.vignette||"");
     const r=rubDe(p);
     App._rubEnCours=r;
     const note=p.auto==="encours"
@@ -2409,6 +2831,7 @@ ouvrirAchat(id){
       '<button class="btn btn-s" onclick="App.transmettreAchats([\''+id+'\'])">📤 Transmettre</button></div>'+
       '<div class="btn-row" style="margin-top:8px"><button class="btn btn-f" onclick="App.supprimerAchat(\''+id+'\')">Supprimer</button>'+
       '<button class="btn btn-f" onclick="App.fermer()">Fermer</button></div>');
+    App.verrouPiece(p);
   });
 },
 choisirRubrique(r){
@@ -2429,17 +2852,19 @@ enregistrerAchat(id){
     /* L'emetteur corrigé à la main sert de règle pour les prochains documents. */
     if(p.fournisseur) apprendre(p.fournisseur,r);
     return achatMettre(p);
-  }).then(()=>{ fermer(); if(ecran==="arc") App.listeArchive(); else App.listeAchats(); toast("Pièce enregistrée"); });
+  }).then(()=>{ fermer(); if(ecran==="arc") App.listeArchive(); else App.listeAchats(); toast("Pièce enregistrée"); })
+    .catch(e=>{ fermer(); toast(e.message||"Enregistrement refusé"); });
 },
 supprimerAchat(id){
   ouvrir('<h3>Supprimer cette pièce ?</h3>'+
-    '<div class="note warn">La photo sera définitivement effacée de cet appareil. Assurez-vous de l\'avoir transmise, ou d\'en avoir l\'original papier.</div>'+
+    '<div class="note warn">La photo sera définitivement effacée'+(ROLE?' pour tout le monde':' de cet appareil')+'. Assurez-vous de l\'avoir transmise, ou d\'en avoir l\'original papier.</div>'+
     '<div class="btn-row"><button class="btn btn-d" onclick="App.confirmerSupAchat(\''+id+'\')">Supprimer</button>'+
     '<button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
 },
 confirmerSupAchat(id){
   achatEffacer(id).then(()=>{ delete App._achatsSel[id]; fermer();
-    if(ecran==="arc") App.listeArchive(); else App.listeAchats(); toast("Pièce supprimée"); });
+    if(ecran==="arc") App.listeArchive(); else App.listeAchats(); toast("Pièce supprimée"); })
+    .catch(e=>{ fermer(); toast(e.message||"Suppression refusée"); });
 },
 recapAchats(l){
   const tot=l.reduce((s,p)=>s+(parseFloat(String(p.montant).replace(",","."))||0),0);
@@ -2469,6 +2894,9 @@ transmettreAchats(quoi){
     let l=ids?tous.filter(p=>ids.indexOf(p.id)>=0):tous.filter(p=>!p.transmisLe);
     if(rub) l=l.filter(p=>rubDe(p)===rub);
     if(!l.length){ toast("Aucune pièce à transmettre"); return; }
+    return Promise.all(l.map(p=>p.blob?p:achatLire(p.id))).then(l2=>{
+    l=l2.filter(p=>p&&p.blob);
+    if(!l.length){ toast("Photos indisponibles sans connexion"); return; }
     const txt=App.recapAchats(l);
     const suj=App.sujetAchats(l);
     const fichiers=l.map(p=>new File([p.blob],(rubDe(p)==="administration"?"ADM-":"")+
@@ -2492,6 +2920,7 @@ transmettreAchats(quoi){
       '<div class="btn-row"><button class="btn btn-p" onclick="App.replisAchats(\'mail\')">✉️ Ouvrir le mail pour '+esc(suivi().mail)+'</button></div>'+
       '<div class="btn-row" style="margin-top:8px"><button class="btn btn-f" onclick="App.fermer()">Annuler</button></div>');
     App._repli={l:l,txt:txt,suj:suj,marquer:marquer};
+    });
   });
 },
 replisAchats(mode){
@@ -2836,15 +3265,22 @@ function majEntete(){
   const n=Object.values(D.factures).filter(f=>f.statut==="validee"&&!f.essai).length;
   document.getElementById("hSous").textContent =
     D.societe.nom+" · "+n+" facture"+(n>1?"s":"")+" validée"+(n>1?"s":"");
-  document.getElementById("hRole").textContent = admin?"Administrateur":"Utilisateur";
+  document.getElementById("hRole").textContent = admin?"Administrateur"
+    :(ROLE==="admin"?"Abdou":(ROLE==="ridha"?"Ridha · consultation":"Hors ligne"));
 }
 
 /* =============== demarrage =============== */
 charger();
+ROLE=lsGet(CLE_ROLE)||null;
+(function(){ const h=(location.hash||"").match(/cle=([A-Za-z0-9]+)/);
+  if(h){ lsSet(CLE_ACCES,h[1]); lsSet(CLE_ROLE,null); ROLE=null;
+    try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} } })();
 if(!D.brouillon) F=factureNeuve();
+appliquerRole();
 majEntete();
 App.aller("acc");
-if(!D.reglages.accueilVu && !Object.keys(D.factures).length) setTimeout(()=>{
+if(!Srv.cle()) App.ecranConnexion(""); else App.connecter(!lsGet(CLE_ROLE));
+if(ROLE==="admin" && !D.reglages.accueilVu && !Object.keys(D.factures).length) setTimeout(()=>{
   // jamais par-dessus une fenetre deja ouverte
   const ov=document.getElementById("ov");
   if(ov&&!ov.classList.contains("on")&&!D.reglages.accueilVu) App.proposerEssai();
